@@ -1,22 +1,27 @@
 #pragma once
 
 #include "common.h"
+#include "channel.h"
+#include "event_loop_thread_pool.h"
 
 namespace networking {
 
-class Acceptor {
+class Acceptor: public Channel {
 public:
-    Acceptor(int port): listen_port_(port) {}   
+
+    Acceptor(EventLoopThreadPool* thread_pool, int port): thread_pool_(thread_pool), listen_port_(port) {}   
 
     bool Init();
+    
+    // virtual int EventWriteCallback() override;
 
-    int GetFD() {}
+    virtual int EventReadCallback() override; 
 
     static void MakeNonblocking(int fd);
 
 private:
+    EventLoopThreadPool* thread_pool_;
     int listen_port_;
-    int listen_fd_;
 } ;
 
 }

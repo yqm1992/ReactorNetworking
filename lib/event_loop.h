@@ -8,72 +8,81 @@
 
 namespace networking {
 
+enum ADMIN_CHANNEL : int {
+    ADMIN_CHANNEL_ADD = 1,
+    ADMIN_CHANNEL_REMOVE = 2,
+    ADMIN_CHANNEL_UPDATE = 3
+};
+
 struct ChannelElement {
     ChannelElement(int type, std::shared_ptr<Channel> channel): type(type), channel(channel) {}
-    int type; //1: add  2: delete 3:update
+    int type; // 1: add  2: delete 3:update
     std::shared_ptr<Channel> channel;
 };
 
 class EventLoop {
 public:
+    EventLoop(const std::string& name);
 
-    EventLoop(): EventLoop(nullptr) {}
-
-    EventLoop(const std::string& thread_name);
+    bool Init();
 
     int Run();
 
-    int AddChannel(int fd, std::shared_ptr<Channel> channel);
+    int AddChannel(std::shared_ptr<Channel> channel) {
+        return AdminChannel(channel, ADMIN_CHANNEL_ADD);
+    }
 
-    int RemoveChannel(int fd);
+    int RemoveChannel(std::shared_ptr<Channel> channel) {
+        return AdminChannel(channel, ADMIN_CHANNEL_REMOVE);
+    }
 
-    int UpdateChannel(int fd, std::shared_ptr<Channel> channel);
+    int UpdateChannel(std::shared_ptr<Channel> channel) {
+        return AdminChannel(channel, ADMIN_CHANNEL_UPDATE);
+    }
+
+
+    void Wakeup();
+
+    std::string GetName() { return name_; }
 
     // dispatcher派发完事件之后，调用该方法通知event_loop执行对应事件的相关callback方法
     // res: EVENT_READ | EVENT_READ等
     int ChannelEventActivate(int fd, int channel_revents);
 
-    void Wakeup();
-
 private:
-
-    bool IsInSameThread();
 
     bool Check(int fd, std::shared_ptr<Channel> channel);
 
     std::shared_ptr<Channel> GetChannel(int fd);
 
-    int HandleWakeup();
+    // int HandleWakeup();
 
     int HandlePendingChannel();
 
-    int HandlePendingAdd(int fd, std::shared_ptr<Channel> channel);
+    int HandlePendingAdd(std::shared_ptr<Channel> channel);
 
     int HandlePendingRemove(int fd);
 
-    int HandlePendingUpdate(int fd, std::shared_ptr<Channel> channel);
+    int HandlePendingUpdate(int fd);
 
-    int AdminChannel(int fd, std::shared_ptr<Channel> channel, int type);
+    int AdminChannel(std::shared_ptr<Channel> channel, int type);
 
-    int quit_;
-    std::unique_ptr<EventDispatcher> event_dispatcher_;
-    std::map<int, std::shared_ptr<Channel>> channel_map_;
-
-    int is_handle_pending_;
-	std::list<ChannelElement> pending_channels_;
-
-    pthread_t owner_thread_id_;
-    std::mutex mutex_;
-    //std::condition_variable cond_;
+    std::string name_;
     int socket_pair_[2];
     std::shared_ptr<Channel> wakeup_channel_;
-    std::string thread_name_;
+    std::unique_ptr<EventDispatcher> event_dispatcher_;
+    std::map<int, std::shared_ptr<Channel>> channel_map_;
+    std::mutex mutex_;
+    int is_handle_pending_;
+	std::list<ChannelElement> pending_channels_;
+    int quit_;
+
 };
 
 }
 
 // AddChannel
-// AdminChannel
+// AdminChannel(1)
 // HandlePendingChannel or Wakeup
 // HandlePendingAdd
 // dispatcher->Add

@@ -9,8 +9,9 @@ public:
 
     void Start();
 
-private:
     std::shared_ptr<EventLoop> SelectSubEventLoop();
+
+private:
 
     std::shared_ptr<EventLoop> GetMainEventLoop() { return main_loop_thread_->GetEventLoop(); }
 

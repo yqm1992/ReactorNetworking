@@ -1,10 +1,10 @@
 #pragma once
 
 //#include "common.h"
-//#include "event_loop.h"
 //#include "buffer.h"
 
 namespace networking {
+
 
 enum CHANNEL_EVENT: int {
     CHANNEL_EVENT_TIMEOUT = 0x01,
@@ -21,18 +21,27 @@ public:
     friend class EventDispatcher;
     friend class EpollDispatcher;
     
-    Channel(int fd, int events, void *data); 
+    Channel() {}
+
+    virtual ~Channel() {}
+
     int GetFD() const { return fd_; }
+
     bool WriteEventIsEnabled();
-    bool EnableWriteEvent(); 
-    bool DisableWriteEvent();
+
+    void EnableWriteEvent(); 
+
+    void DisableWriteEvent();
+
     virtual int EventReadCallback(); 
+
     virtual int EventWriteCallback();
 
 protected:
-	int fd_;
-	int events_;   //表示event类型
-    void *data_; //callback data, 可能是event_loop，也可能是tcp_server或者tcp_connection
+    void Set(int fd, int events) { fd_ = fd; events_ = events; }
+
+	int fd_ = -1;
+	int events_ = 0;   // 表示event类型
 };
 
 }

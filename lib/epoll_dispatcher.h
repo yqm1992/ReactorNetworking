@@ -16,11 +16,11 @@ public:
     
     virtual bool Init(void* data) override;
 
-	virtual bool Add(std::shared_ptr<Channel> channel) override;	
+	virtual bool Add(const Channel& channel) override;	
 
-	virtual bool Del(std::shared_ptr<Channel> channel) override;	
+	virtual bool Del(const Channel& channel) override;	
 
-	virtual bool Update(std::shared_ptr<Channel> channel) override;	
+	virtual bool Update(const Channel& channel) override;	
 
 	virtual bool Dispatch(struct timeval *) override;	
 
@@ -28,7 +28,7 @@ public:
 
 protected:
 
-    struct epoll_event GetEpollEvent(std::shared_ptr<Channel> channel);
+    struct epoll_event GetEpollEvent(const Channel& channel);
 
     EventLoop* event_loop_ = nullptr;
     int event_count_ = 0;

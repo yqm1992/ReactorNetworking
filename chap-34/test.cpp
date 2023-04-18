@@ -10,7 +10,9 @@ int main() {
     //     cur_thread->Start();
     //     thread_pool.push_back(cur_thread);
     // }
-    networking::EventLoopThreadPool thread_pool(4);
+
+
+    networking::EventLoopThreadPool thread_pool(1);
     thread_pool.Start();
     return 0;
 }

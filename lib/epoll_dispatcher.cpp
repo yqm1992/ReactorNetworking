@@ -10,15 +10,15 @@ void EpollDispatcher::Clear() {
     close(efd_);
 }
 
-struct epoll_event EpollDispatcher::GetEpollEvent(std::shared_ptr<Channel> channel) {
+struct epoll_event EpollDispatcher::GetEpollEvent(const Channel& channel) {
     struct epoll_event event;
-    event.data.fd = channel->GetFD();
+    event.data.fd = channel.GetFD();
 
-    if (channel->events_ & CHANNEL_EVENT_READ) {
+    if (channel.events_ & CHANNEL_EVENT_READ) {
         event.events |= EPOLLIN;
     }
 
-    if (channel->events_ & CHANNEL_EVENT_WRITE) {
+    if (channel.events_ & CHANNEL_EVENT_WRITE) {
         event.events |= EPOLLOUT;
     }
     // event.events |= EPOLLET;
@@ -39,7 +39,7 @@ bool EpollDispatcher::Init(void* data) {
 }
 
 
-bool EpollDispatcher::Add(std::shared_ptr<Channel> channel) {
+bool EpollDispatcher::Add(const Channel& channel) {
     struct epoll_event event = GetEpollEvent(channel);
     if (epoll_ctl(efd_, EPOLL_CTL_ADD, event.data.fd, &event) == -1) {
         // error(1, errno, "epoll_ctl add  fd failed");
@@ -49,7 +49,7 @@ bool EpollDispatcher::Add(std::shared_ptr<Channel> channel) {
     return true;
 }
 
-bool EpollDispatcher::Del(std::shared_ptr<Channel> channel) {
+bool EpollDispatcher::Del(const Channel& channel) {
     struct epoll_event event = GetEpollEvent(channel);
     if (epoll_ctl(efd_, EPOLL_CTL_DEL, event.data.fd, &event) == -1) {
         // error(1, errno, "epoll_ctl delete fd failed");
@@ -59,7 +59,7 @@ bool EpollDispatcher::Del(std::shared_ptr<Channel> channel) {
     return true;
 }
 
-bool EpollDispatcher::Update(std::shared_ptr<Channel> channel) {
+bool EpollDispatcher::Update(const Channel& channel) {
     struct epoll_event event = GetEpollEvent(channel);
     if (epoll_ctl(efd_, EPOLL_CTL_MOD, event.data.fd, &event) == -1) {
         // error(1, errno, "epoll_ctl modify fd failed");

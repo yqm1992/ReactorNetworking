@@ -2,18 +2,17 @@
 
 namespace networking {
 
-Channel::Channel(int fd, int events, void *data) {}
 
 bool Channel::WriteEventIsEnabled() { 
-    return false; 
+    return events_ & CHANNEL_EVENT_WRITE; 
 }
 
-bool Channel::EnableWriteEvent() { 
-    return false; 
+void Channel::EnableWriteEvent() { 
+    events_ |= CHANNEL_EVENT_WRITE; 
 }
 
-bool Channel::DisableWriteEvent() { 
-    return false; 
+void Channel::DisableWriteEvent() { 
+    events_ &= ~CHANNEL_EVENT_WRITE; 
 }
 
 int Channel::EventReadCallback() { 

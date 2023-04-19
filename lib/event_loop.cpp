@@ -2,19 +2,34 @@
 #include "event_loop.h"
 #include "common.h"
 #include "log.h"
-// #include "event_dispatcher.h"
+// #include "dispatcher.h"
 #include "epoll_dispatcher.h"
 #include "channel.h"
-#include "wakeup_channel.h"
 // #include "utils.h"
 
 namespace networking {
+
+void WakeupChannel::Init(EventLoop* event_loop, int fd) {
+    event_loop_ = event_loop;
+    Set(fd, CHANNEL_EVENT_READ, "wakeup_fd");
+}
+
+
+int WakeupChannel::EventReadCallback() {
+    char one;
+    ssize_t n = read(fd_, &one, sizeof one);
+    if (n != sizeof one) {
+        LOG_ERR("HandleWakeup failed");
+    }
+    yolanda_msgx("read from channel %s, %s", GetDescription().c_str(), event_loop_->GetName().c_str());
+    return 0;
+}
 
 EventLoop::EventLoop(const std::string& name): quit_(0), is_handle_pending_(0), name_(name) {}
 
 bool EventLoop::Init() {
     yolanda_msgx("set epoll as dispatcher, %s", name_.c_str());
-    event_dispatcher_.reset(static_cast<EventDispatcher*>( new EpollDispatcher() ));
+    event_dispatcher_.reset(static_cast<Dispatcher*>( new EpollDispatcher(name_) ));
 
     if (!event_dispatcher_->Init(this)) {
         return false;
@@ -29,7 +44,7 @@ bool EventLoop::Init() {
     WakeupChannel* wakeup_channel = new WakeupChannel();
     wakeup_channel->Init(this, socket_pair_[1]);
     wakeup_channel_.reset(static_cast<Channel*>(wakeup_channel));
-    AddChannel(wakeup_channel_);
+    HandlePendingAdd(wakeup_channel_); // 这里不能用AddChannel，因为这个功能本身依赖于wakeup_channel_
 }
 
 // in the i/o thread
@@ -87,7 +102,7 @@ std::shared_ptr<Channel> EventLoop::GetChannel(int fd) {
 
 // in the i/o thread
 int EventLoop::HandlePendingAdd(std::shared_ptr<Channel> channel) {
-    yolanda_msgx("add channel fd == %d, %s", channel->GetFD(), name_.c_str());
+    yolanda_msgx("add channel %s, %s", channel->GetDescription().c_str(), name_.c_str());
     int fd = channel->GetFD();
 
     if (fd < 0) {
@@ -134,12 +149,12 @@ int EventLoop::HandlePendingUpdate(int fd) {
 }
 
 int EventLoop::ChannelEventActivate(int fd, int channel_revents) {
-    yolanda_msgx("activate channel fd == %d, revents=%d, %s", fd, channel_revents, name_.c_str());
-
+    // yolanda_msgx("activate channel fd == %d, revents=%d, %s", fd, channel_revents, name_.c_str());
     std::shared_ptr<Channel> found_channel = GetChannel(fd);
     if (found_channel == nullptr) {
         return -1;
     }
+    yolanda_msgx("activate channel %s, revents=%s, %s", found_channel->GetDescription().c_str(), Channel::GetEventsString(channel_revents).c_str(), name_.c_str());
 
     if (channel_revents & (CHANNEL_EVENT_READ)) {
         found_channel->EventReadCallback();

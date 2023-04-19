@@ -35,7 +35,7 @@ bool Acceptor::Init() {
         return false;
     }
     //    signal(SIGPIPE, SIG_IGN);
-    Set(listen_fd, CHANNEL_EVENT_READ);
+    Set(listen_fd, CHANNEL_EVENT_READ, "acceptor");
     return true;
 }
 
@@ -46,16 +46,18 @@ int Acceptor::EventReadCallback() {
     struct sockaddr client_addr;
     socklen_t client_len;
 
+
     int conn_fd = accept(fd_, &client_addr, &client_len);
     if (conn_fd < 0) {
         // error(1, errno, "bind failed ");
         return -1;
     }
     MakeNonblocking(conn_fd);
-    yolanda_msgx("new connection fd == %d", conn_fd);
+    yolanda_msgx("new connection fd = %d", conn_fd);
     // close(fd_);
     
     auto sub_loop = thread_pool_->SelectSubEventLoop();
+    sub_loop->Wakeup();
     // auto channel = new Channel();
     // channel->Init(conn_fd, CHANNEL_EVENT_READ);
     // sub_loop->AddChannel();

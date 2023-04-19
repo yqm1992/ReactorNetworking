@@ -1,5 +1,5 @@
 #include  <sys/epoll.h>
-#include "event_dispatcher.h"
+#include "dispatcher.h"
 #include "common.h"
 #include "epoll_dispatcher.h"
 
@@ -26,6 +26,18 @@ struct epoll_event EpollDispatcher::GetEpollEvent(const Channel& channel) {
     return event;
 }
 
+int EpollDispatcher::GetChannelEvents(int epoll_events) {
+    int channel_events = 0;
+    if (epoll_events & EPOLLIN) {
+        channel_events |= CHANNEL_EVENT_READ;
+    }
+
+    if (epoll_events & EPOLLOUT) {
+        channel_events |= CHANNEL_EVENT_WRITE;
+    }
+    return channel_events;
+}
+
 bool EpollDispatcher::Init(void* data) {
     efd_ = epoll_create1(0);
     if (efd_ == -1) {
@@ -42,7 +54,7 @@ bool EpollDispatcher::Init(void* data) {
 bool EpollDispatcher::Add(const Channel& channel) {
     struct epoll_event event = GetEpollEvent(channel);
     if (epoll_ctl(efd_, EPOLL_CTL_ADD, event.data.fd, &event) == -1) {
-        // error(1, errno, "epoll_ctl add  fd failed");
+        // error(1, errno, "epoll_ctl add fd failed");
         return false;
     }
 
@@ -75,19 +87,23 @@ bool EpollDispatcher::Dispatch(struct timeval *timeval) {
         const auto& cur_event = events_[i];
         if ((cur_event.events & EPOLLERR) || (cur_event.events & EPOLLHUP)) {
             fprintf(stderr, "epoll error\n");
-            close(cur_event.data.fd);
+            event_loop_->RemoveChannel(cur_event.data.fd);
             continue;
         }
 
-        if (cur_event.events & EPOLLIN) {
-            yolanda_msgx("get message channel fd==%d for read, %s", cur_event.data.fd, name_.c_str());
-            event_loop_->ChannelEventActivate(cur_event.data.fd, CHANNEL_EVENT_READ);
-        }
+        // if (cur_event.events & EPOLLIN) {
+        //     yolanda_msgx("get message channel fd==%d for read, %s", cur_event.data.fd, name_.c_str());
+        //     channel_events |= CHANNEL_EVENT_READ;
+        //     // event_loop_->ChannelEventActivate(cur_event.data.fd, CHANNEL_EVENT_READ);
+        // }
 
-        if (cur_event.events & EPOLLOUT) {
-            yolanda_msgx("get message channel fd==%d for write, %s", cur_event.data.fd, name_.c_str());
-            event_loop_->ChannelEventActivate(cur_event.data.fd, CHANNEL_EVENT_WRITE);
-        }
+        // if (cur_event.events & EPOLLOUT) {
+        //     yolanda_msgx("get message channel fd==%d for write, %s", cur_event.data.fd, name_.c_str());
+        //     channel_events |= CHANNEL_EVENT_WRITE;
+        //     // event_loop_->ChannelEventActivate(cur_event.data.fd, CHANNEL_EVENT_WRITE);
+        // }
+        int channel_events = GetChannelEvents(cur_event.events);
+        event_loop_->ChannelEventActivate(cur_event.data.fd, channel_events);
     }
 
     return true;

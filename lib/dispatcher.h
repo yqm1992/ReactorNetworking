@@ -5,13 +5,13 @@
 
 namespace networking {
 
-/** 抽象的EventDispatcher结构体，对应的实现如select,poll,epoll等I/O复用. */
-class EventDispatcher {
+/** 抽象的Dispatcher结构体，对应的实现如select,poll,epoll等I/O复用. */
+class Dispatcher {
 public:
 
-    EventDispatcher() {}
+    Dispatcher(const std::string& name): name_(name) {}
 
-    virtual ~EventDispatcher() {};
+    virtual ~Dispatcher() {};
 
     virtual bool Init(void* data) = 0;
 

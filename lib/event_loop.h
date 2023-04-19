@@ -2,7 +2,7 @@
 
 #include <pthread.h>
 #include "channel.h"
-#include "event_dispatcher.h"
+#include "dispatcher.h"
 #include "sync_cond.h"
 #include "common.h"
 
@@ -20,6 +20,19 @@ struct ChannelElement {
     std::shared_ptr<Channel> channel;
 };
 
+
+class EventLoop;
+
+class WakeupChannel: public Channel {
+public:
+    void Init(EventLoop* event_loop, int fd);
+    
+    virtual int EventReadCallback() override;
+    
+private:
+    EventLoop* event_loop_;
+};
+
 class EventLoop {
 public:
     EventLoop(const std::string& name);
@@ -32,11 +45,19 @@ public:
         return AdminChannel(channel, ADMIN_CHANNEL_ADD);
     }
 
-    int RemoveChannel(std::shared_ptr<Channel> channel) {
+    int RemoveChannel(int fd) {
+        auto channel = GetChannel(fd);
+        if (channel == nullptr) {
+            return 0;
+        }
         return AdminChannel(channel, ADMIN_CHANNEL_REMOVE);
     }
 
-    int UpdateChannel(std::shared_ptr<Channel> channel) {
+    int UpdateChannel(int fd) {
+        auto channel = GetChannel(fd);
+        if (channel == nullptr) {
+            return 0;
+        }
         return AdminChannel(channel, ADMIN_CHANNEL_UPDATE);
     }
 
@@ -51,9 +72,9 @@ public:
 
 private:
 
-    bool Check(int fd, std::shared_ptr<Channel> channel);
-
     std::shared_ptr<Channel> GetChannel(int fd);
+
+    bool Check(int fd, std::shared_ptr<Channel> channel);
 
     // int HandleWakeup();
 
@@ -70,7 +91,7 @@ private:
     std::string name_;
     int socket_pair_[2];
     std::shared_ptr<Channel> wakeup_channel_;
-    std::unique_ptr<EventDispatcher> event_dispatcher_;
+    std::unique_ptr<Dispatcher> event_dispatcher_;
     std::map<int, std::shared_ptr<Channel>> channel_map_;
     std::mutex mutex_;
     int is_handle_pending_;

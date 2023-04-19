@@ -15,6 +15,7 @@ EventLoopThread::EventLoopThread(std::shared_ptr<EventLoop> event_loop) {
 
 void EventLoopThread::Start() {
     work_thread_ = new std::thread(&EventLoopThread::Run, this);
+    sync_cond_.Wait();
 }
 
 void EventLoopThread::Run() {    

@@ -17,7 +17,6 @@ set(yolanda_lib
         event_loop_thread.cpp
         event_loop_thread_pool.cpp
         acceptor.cpp
-        wakeup_channel.cpp
     )
 
 

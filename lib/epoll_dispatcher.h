@@ -1,7 +1,7 @@
 #pragma once
 
 #include  <sys/epoll.h>
-#include "event_dispatcher.h"
+#include "dispatcher.h"
 #include "event_loop.h"
 #include "log.h"
 
@@ -9,8 +9,10 @@
 
 namespace networking {
 
-class EpollDispatcher: public EventDispatcher {
+class EpollDispatcher: public Dispatcher {
 public:
+
+    EpollDispatcher(const std::string& name): Dispatcher(name) {}
 
     ~EpollDispatcher() { Clear(); }
     
@@ -29,6 +31,8 @@ public:
 protected:
 
     struct epoll_event GetEpollEvent(const Channel& channel);
+
+    int GetChannelEvents(int epoll_events);
 
     EventLoop* event_loop_ = nullptr;
     int event_count_ = 0;

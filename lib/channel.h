@@ -2,6 +2,7 @@
 
 //#include "common.h"
 //#include "buffer.h"
+#include <string>
 
 namespace networking {
 
@@ -18,7 +19,7 @@ enum CHANNEL_EVENT: int {
 
 class Channel {
 public:
-    friend class EventDispatcher;
+    friend class Dispatcher;
     friend class EpollDispatcher;
     
     Channel() {}
@@ -27,21 +28,40 @@ public:
 
     int GetFD() const { return fd_; }
 
-    bool WriteEventIsEnabled();
+    bool WriteEventIsEnabled() { return events_ & CHANNEL_EVENT_WRITE; }
 
-    void EnableWriteEvent(); 
+    bool ReadEventIsEnabled() { return events_ & CHANNEL_EVENT_READ; }
 
-    void DisableWriteEvent();
+    void EnableWriteEvent() { events_ |= CHANNEL_EVENT_WRITE; }
 
-    virtual int EventReadCallback(); 
+    void DisableWriteEvent() { events_ &= ~CHANNEL_EVENT_WRITE; }
 
-    virtual int EventWriteCallback();
+    std::string GetDescription() { 
+        std::string ret = "[fd=" + std::to_string(fd_) + "(" + type_ + ") focus_events=" + GetEventsString(events_) + "]";
+        return std::move(ret);
+    }
+
+    virtual int EventReadCallback() { return 0; } 
+
+    virtual int EventWriteCallback() { return 0; }
+
+    static std::string GetEventsString(int revents) {
+        std::string events_str;
+        if (revents & CHANNEL_EVENT_READ) {
+            events_str += (events_str == "") ? "READ" : "|READ";
+        }
+        if (revents & CHANNEL_EVENT_WRITE) {
+            events_str += (events_str == "") ? "WRITE" : "|WRITE";
+        }
+        return std::move(events_str);
+    }
 
 protected:
-    void Set(int fd, int events) { fd_ = fd; events_ = events; }
+    void Set(int fd, int events, const std::string& type) { fd_ = fd; events_ = events; type_ = type; }
 
 	int fd_ = -1;
 	int events_ = 0;   // 表示event类型
+    std::string type_;
 };
 
 }

@@ -53,7 +53,7 @@ public:
         return AdminChannel(channel, ADMIN_CHANNEL_REMOVE);
     }
 
-    int UpdateChannel(int fd) {
+    int UpdateChannelEvent(int fd) {
         auto channel = GetChannel(fd);
         if (channel == nullptr) {
             return 0;

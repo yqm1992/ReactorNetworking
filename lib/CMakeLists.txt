@@ -15,7 +15,7 @@ set(yolanda_lib
         epoll_dispatcher.cpp
         event_loop.cpp
         event_loop_thread.cpp
-        event_loop_thread_pool.cpp
+        tcp_server.cpp
         acceptor.cpp
     )
 

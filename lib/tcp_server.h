@@ -3,9 +3,9 @@
 #include "event_loop_thread.h"
 
 namespace networking {
-class EventLoopThreadPool {
+class TcpServer {
 public:
-    EventLoopThreadPool(int thread_num): thread_num_(std::max(1, thread_num)) {}
+    TcpServer(int thread_num, int listen_port): thread_num_(std::max(1, thread_num)), listen_port_(listen_port) {}
 
     void Start();
 
@@ -21,6 +21,7 @@ private:
     int started_;
     //线程数目
     int thread_num_;
+    int listen_port_;
     //数组指针，指向创建的event_loop_thread数组
     std::vector<std::shared_ptr<networking::EventLoopThread>> sub_loop_threads_;
 

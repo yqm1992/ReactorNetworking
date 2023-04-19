@@ -37,7 +37,7 @@ public:
     void DisableWriteEvent() { events_ &= ~CHANNEL_EVENT_WRITE; }
 
     std::string GetDescription() { 
-        std::string ret = "[fd=" + std::to_string(fd_) + "(" + type_ + ") focus_events=" + GetEventsString(events_) + "]";
+        std::string ret = "[fd=" + std::to_string(fd_) + " (" + type_ + ") focus_events=" + GetEventsString(events_) + "]";
         return std::move(ret);
     }
 

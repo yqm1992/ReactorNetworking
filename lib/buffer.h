@@ -7,6 +7,8 @@ namespace networking {
 // 可以考虑做成虚类，方便兼容不同类型的buffer
 class Buffer {
 public:
+    friend class TcpConnection;
+
     Buffer(): read_index_(0), write_index_(0) {
         data_ = new char[INIT_BUFFER_SIZE];
         total_size_ = INIT_BUFFER_SIZE;

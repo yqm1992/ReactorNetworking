@@ -74,11 +74,11 @@ private:
 
     std::shared_ptr<Channel> GetChannel(int fd);
 
-    bool Check(int fd, std::shared_ptr<Channel> channel);
+    bool InOwnerThread() { return owner_thread_id_ == pthread_self(); }
 
-    // int HandleWakeup();
+    int HandlePendingChannels(); // 处理pending队列中的ChannelElement
 
-    int HandlePendingChannel();
+    int HandleChannelElement(const ChannelElement& channel_element); // 处理单个ChannelElement
 
     int HandlePendingAdd(std::shared_ptr<Channel> channel);
 
@@ -89,6 +89,7 @@ private:
     int AdminChannel(std::shared_ptr<Channel> channel, int type);
 
     std::string name_;
+    pthread_t owner_thread_id_;
     int socket_pair_[2];
     std::shared_ptr<Channel> wakeup_channel_;
     std::unique_ptr<Dispatcher> event_dispatcher_;
@@ -101,9 +102,28 @@ private:
 };
 
 }
-
+// ------------ 其他线程中调用AddChannel -----------------
+//      other_thread 调用AddChannel
 // AddChannel
 // AdminChannel(1)
-// HandlePendingChannel or Wakeup
+// pending_channels_.push_back()
+// Wakeup
+
+//      event_loop_thread 处理
+// HandlePendingChannels
+// HandleChannelElement
 // HandlePendingAdd
 // dispatcher->Add
+
+// ------------ EventLoop线程中调用AddChannel -----------------
+// * event_loop_thread
+// AddChannel
+// AdminChannel(1)
+// HandleChannelElement
+// HandlePendingAdd
+// dispatcher->Add
+
+// AddChannel RemoveChannel UpdateChannel
+//              AdminChannel
+//              HandleChannelElement
+// HandlePendingAdd HandlePendingRemove HandlePendingUpdate

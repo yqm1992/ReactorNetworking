@@ -57,10 +57,11 @@ public:
     }
 
 protected:
-    void Set(int fd, int events, const std::string& type) { fd_ = fd; events_ = events; type_ = type; }
+    void Set(int fd, int events, void* data, const std::string& type) { fd_ = fd; events_ = events; data_= data; type_ = type; }
 
 	int fd_ = -1;
 	int events_ = 0;   // 表示event类型
+    void *data_ = nullptr; //callback data, 可能是event_loop，也可能是tcp_server或者tcp_connection
     std::string type_;
 };
 

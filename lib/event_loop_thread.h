@@ -33,7 +33,6 @@ private:
 
     void Run();
 
-
     std::shared_ptr<EventLoop> event_loop_;
     std::thread* work_thread_ = nullptr;
     SyncCond sync_cond_;

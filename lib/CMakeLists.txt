@@ -17,6 +17,7 @@ set(yolanda_lib
         event_loop_thread.cpp
         tcp_server.cpp
         acceptor.cpp
+        tcp_connection.cpp
     )
 
 

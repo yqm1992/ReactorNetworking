@@ -9,18 +9,21 @@ namespace networking {
 class Acceptor: public Channel {
 public:
 
-    Acceptor(TcpServer* thread_pool, int port): thread_pool_(thread_pool), listen_port_(port) {}   
+    Acceptor() {}   
 
-    bool Init();
+    bool Init(TcpServer* tcp_server, int port);
     
     // virtual int EventWriteCallback() override;
 
     virtual int EventReadCallback() override; 
 
-    static void MakeNonblocking(int fd);
+    static bool MakeNonblocking(int fd);
+
+    static int GetListenFD(int listen_port);
 
 private:
-    TcpServer* thread_pool_;
+    TcpServer* GetTcpServer() { return static_cast<TcpServer*>(data_); }
+
     int listen_port_;
 } ;
 

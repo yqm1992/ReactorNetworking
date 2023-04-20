@@ -11,8 +11,8 @@ void TcpServer::Start() {
         cur_thread->Start();
         sub_loop_threads_.push_back(cur_thread);
     }
-    auto acceptor = new Acceptor(this, listen_port_);
-    acceptor->Init();
+    auto acceptor = new Acceptor();
+    acceptor->Init(this, listen_port_);
     std::shared_ptr<Channel> channel;
     channel.reset(static_cast<Channel*>(acceptor));
     main_loop_thread_->GetEventLoop()->AddChannel(channel);

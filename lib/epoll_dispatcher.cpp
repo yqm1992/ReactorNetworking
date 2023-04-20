@@ -82,7 +82,7 @@ bool EpollDispatcher::Update(const Channel& channel) {
 
 bool EpollDispatcher::Dispatch(struct timeval *timeval) {
     int len = epoll_wait(efd_, &events_[0], MAXEVENTS, -1);
-    yolanda_msgx("epoll_wait wakeup, %s", name_.c_str());
+    // yolanda_msgx("epoll_wait wakeup, %s", name_.c_str());
     for (int i = 0; i < len; i++) {
         const auto& cur_event = events_[i];
         if ((cur_event.events & EPOLLERR) || (cur_event.events & EPOLLHUP)) {
@@ -91,17 +91,6 @@ bool EpollDispatcher::Dispatch(struct timeval *timeval) {
             continue;
         }
 
-        // if (cur_event.events & EPOLLIN) {
-        //     yolanda_msgx("get message channel fd==%d for read, %s", cur_event.data.fd, name_.c_str());
-        //     channel_events |= CHANNEL_EVENT_READ;
-        //     // event_loop_->ChannelEventActivate(cur_event.data.fd, CHANNEL_EVENT_READ);
-        // }
-
-        // if (cur_event.events & EPOLLOUT) {
-        //     yolanda_msgx("get message channel fd==%d for write, %s", cur_event.data.fd, name_.c_str());
-        //     channel_events |= CHANNEL_EVENT_WRITE;
-        //     // event_loop_->ChannelEventActivate(cur_event.data.fd, CHANNEL_EVENT_WRITE);
-        // }
         int channel_events = GetChannelEvents(cur_event.events);
         event_loop_->ChannelEventActivate(cur_event.data.fd, channel_events);
     }

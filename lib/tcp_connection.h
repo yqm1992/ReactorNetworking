@@ -38,9 +38,9 @@ public:
     int SendBuffer(Buffer *buffer);
     void Shutdown();
 
-    virtual int ConnectionClosedCallBack();
-    virtual int MessageCallBack();
-    virtual int WriteCompletedCallBack() { return 0; };
+    // virtual int ConnectionClosedCallBack();
+    // virtual int MessageCallBack();
+    // virtual int WriteCompletedCallBack() { return 0; };
 
 private:
     EventLoop* GetEventLoop() { return static_cast<EventLoop*>(data_); }

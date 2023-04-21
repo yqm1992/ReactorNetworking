@@ -22,26 +22,12 @@ int TcpConnection::EventReadCallback() {
     return 0;
 }
 
-// EventReadCallback中调用，处理正常读出消息后的情况
-int TcpConnection::MessageCallBack() {
-    yolanda_msgx("read from %s", GetDescription().c_str());
-    std::cout << input_buffer_->data_ << std::endl;
-    return 0;
-}
-
 // EventReadCallback中调用，处理connection关闭的情况
 int TcpConnection::HandleConnectionClosed() {
     application_->ConnectionClosedCallBack(this);
     GetEventLoop()->RemoveChannel(fd_);
     Shutdown();
 }
-
-// HandleConnectionClosed中调用
-int TcpConnection::ConnectionClosedCallBack() {
-    yolanda_msgx("close %s", GetDescription().c_str());
-    return 0;
-}
-
 
 // 从output_buffer 读取数据，然后写入到socket
 int TcpConnection::EventWriteCallback() {

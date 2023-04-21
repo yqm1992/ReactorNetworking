@@ -67,8 +67,10 @@ int Acceptor::EventReadCallback() {
     yolanda_msgx("new connection fd = %d", conn_fd);
     // close(fd_);
     
-    auto io_loop = GetTcpServer()->SelectSubEventLoop();
-    io_loop->AddChannel(TcpConnection::MakeChannel(conn_fd, io_loop.get() ));
+    auto tcp_server = GetTcpServer();
+    auto io_loop = tcp_server->SelectSubEventLoop().get();
+    auto application = tcp_server->GetTcpApplication().get();
+    io_loop->AddChannel(TcpConnection::MakeChannel(conn_fd, io_loop, application));
 }
 
 }

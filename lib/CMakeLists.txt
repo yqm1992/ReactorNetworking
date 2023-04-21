@@ -18,6 +18,7 @@ set(yolanda_lib
         tcp_server.cpp
         acceptor.cpp
         tcp_connection.cpp
+        tcp_application.cpp
     )
 
 

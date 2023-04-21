@@ -1,5 +1,4 @@
 #include "buffer.h"
-#include "common.h"
 
 namespace networking {
 
@@ -28,7 +27,7 @@ void Buffer::MakeRoom(int size) {
     }
 }
 
-int Buffer::Append(void *data, int size) {
+int Buffer::Append(const char *data, int size) {
     if (data != nullptr) {
         MakeRoom(size);
         //拷贝数据到可写空间中
@@ -42,7 +41,7 @@ int Buffer::AppendChar(char data) {
     data_[write_index_++] = data;
 }
 
-int Buffer::AppendString(char *data) {
+int Buffer::AppendString(const char *data) {
     if (data != nullptr) {
         int size = strlen(data);
         Append(data, size);
@@ -69,7 +68,16 @@ int Buffer::SocketRead(int fd) {
     return result;
 }
 
-char Buffer::ReadChar(struct buffer *buffer) {
+ssize_t Buffer::SocketWrite(int fd) {
+    ssize_t writed_socket_size = write(fd, data_ + read_index_, ReadableSize());
+    if (writed_socket_size > 0) {
+        //已读writed_socket_size字节
+        read_index_ += writed_socket_size;
+    }
+    return writed_socket_size;
+}
+
+char Buffer::ReadChar() {
     char c = data_[read_index_++];
     return c;
 }

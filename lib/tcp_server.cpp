@@ -3,6 +3,26 @@
 
 namespace networking {
 
+// int TcpApplication::ConnectionCompletedCallBack(TcpConnection* connection) {
+//     yolanda_msgx("ConnectionCompletedCallBack");
+//     return 0;
+// }
+
+// int TcpApplication::ConnectionClosedCallBack(TcpConnection* connection) {
+//     yolanda_msgx("ConnectionClosedCallBack");
+//     return 0;
+// }
+
+// int TcpApplication::MessageCallBack(TcpConnection* connection) {
+//     yolanda_msgx("MessageCallBack");
+//     return 0;
+// }
+
+// int TcpApplication::WriteCompletedCallBack(TcpConnection* connection) {
+//     yolanda_msgx("WriteCompletedCallBack");
+//     return 0;
+// }
+
 void TcpServer::Start() {
     main_loop_thread_ = std::make_shared<networking::EventLoopThread>("Main-Loop");
     main_loop_thread_->Start();
@@ -18,12 +38,12 @@ void TcpServer::Start() {
     main_loop_thread_->GetEventLoop()->AddChannel(channel);
 }
 
-std::shared_ptr<EventLoop> TcpServer::SelectSubEventLoop() {
+EventLoop* TcpServer::SelectSubEventLoop() {
     int index = (position_++) % thread_num_;
     if (position_ >= thread_num_) {
         position_ = 0;
     }
-    return sub_loop_threads_[index]->GetEventLoop();
+    return sub_loop_threads_[index]->GetEventLoop().get();
 }
 
 }

@@ -97,6 +97,7 @@ private:
     std::mutex mutex_;
     int is_handle_pending_;
 	std::list<ChannelElement> pending_channels_;
+    std::list<ChannelElement> error_channels_; // 存放有问题的channel
     int quit_;
 
 };

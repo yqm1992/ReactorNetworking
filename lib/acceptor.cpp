@@ -68,8 +68,8 @@ int Acceptor::EventReadCallback() {
     // close(fd_);
     
     auto tcp_server = GetTcpServer();
-    auto io_loop = tcp_server->SelectSubEventLoop().get();
-    auto application = tcp_server->GetTcpApplication().get();
+    auto io_loop = tcp_server->SelectSubEventLoop();
+    auto application = tcp_server->GetTcpApplication();
     io_loop->AddChannel(TcpConnection::MakeChannel(conn_fd, io_loop, application));
 }
 

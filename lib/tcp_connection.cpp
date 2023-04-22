@@ -7,6 +7,7 @@ namespace networking {
 std::shared_ptr<Channel> TcpConnection::MakeChannel(int connected_fd, EventLoop *event_loop, TcpApplication* application) {
     std::shared_ptr<Channel> channel;
     TcpConnection* connection = new TcpConnection(connected_fd, event_loop, application);
+    connection->Init();
     channel.reset(static_cast<Channel*>(connection));
     return channel;
 }
@@ -58,6 +59,7 @@ int TcpConnection::SendData(const char *data, int size) {
     // 可以直接尝试套接字尝试发送数据
     if (!WriteEventIsEnabled() && output_buffer_->ReadableSize() == 0) {
         writed_socket_size = write(fd_, data, size);
+        // writed_socket_size = write(fd_, data, 1); // 可以只发送少量数据，手动触发更新WriteEvent
         if (writed_socket_size >= 0) {
             left_size = left_size - writed_socket_size;
         } else {
@@ -75,6 +77,7 @@ int TcpConnection::SendData(const char *data, int size) {
         output_buffer_->Append(data + writed_socket_size, left_size);
         if (!WriteEventIsEnabled()) {
             EnableWriteEvent();
+            GetEventLoop()->UpdateChannelEvent(fd_);
         }
     }
 

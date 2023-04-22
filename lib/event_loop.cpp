@@ -69,17 +69,25 @@ int EventLoop::HandleChannelElement(const ChannelElement& channel_element) {
 
 // in the i/o thread
 int EventLoop::HandlePendingChannels() {
+    std::list<ChannelElement> cur_error_channel_list;
     //get the lock
     std::unique_lock<std::mutex> lock(mutex_);
+    //  先处理pending_channels
     is_handle_pending_ = 1;
-
     for (auto& channel_element: pending_channels_) {
-       HandleChannelElement(channel_element);
+        if (HandleChannelElement(channel_element) != 0) {
+            cur_error_channel_list.push_back(channel_element);
+        }
     }
-    
     pending_channels_.clear();
+    // 再处理上次遗留的error_channels
+    for (auto& channel_element: error_channels_) {
+        if (HandleChannelElement(channel_element) != 0) {
+            cur_error_channel_list.push_back(channel_element);
+        }
+    }
+    std::swap(cur_error_channel_list, error_channels_);
     is_handle_pending_ = 0;
-
     // ~lock, release the lock
 
     return 0;

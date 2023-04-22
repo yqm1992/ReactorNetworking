@@ -73,6 +73,7 @@ ssize_t Buffer::SocketWrite(int fd) {
     if (writed_socket_size > 0) {
         //已读writed_socket_size字节
         read_index_ += writed_socket_size;
+        yolanda_msgx("socket write size: %d", writed_socket_size);
     }
     return writed_socket_size;
 }

@@ -3,10 +3,11 @@
 #include "event_loop.h"
 #include "channel.h"
 #include "buffer.h"
-#include "tcp_application.h"
-// #include "tcp_server.h"
+#include "tcp_server.h"
 
 namespace networking {
+
+class TcpApplication;
 
 class TcpConnection: public Channel {
 public:
@@ -25,7 +26,7 @@ public:
 
     ~TcpConnection() {}
 
-    // bool Init();
+    void Init() { application_->ConnectionCompletedCallBack(this); }
 
     static std::shared_ptr<Channel> MakeChannel(int connected_fd, EventLoop *event_loop, TcpApplication* application);
 
@@ -37,10 +38,7 @@ public:
     int SendData(const char *data, int size);
     int SendBuffer(Buffer *buffer);
     void Shutdown();
-
-    // virtual int ConnectionClosedCallBack();
-    // virtual int MessageCallBack();
-    // virtual int WriteCompletedCallBack() { return 0; };
+    Buffer* GetInputBuffer() { return input_buffer_.get(); }
 
 private:
     EventLoop* GetEventLoop() { return static_cast<EventLoop*>(data_); }

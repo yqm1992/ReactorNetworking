@@ -4,9 +4,9 @@
 namespace networking {
 // TODO: 想一下TcpConnection的生命周期是怎样的
 
-std::shared_ptr<Channel> TcpConnection::MakeChannel(int connected_fd, EventLoop *event_loop, TcpApplication* application) {
+std::shared_ptr<Channel> TcpConnection::MakeChannel(int connected_fd, EventLoop *event_loop, TcpApplicationFactory* application_factory) {
     std::shared_ptr<Channel> channel;
-    TcpConnection* connection = new TcpConnection(connected_fd, event_loop, application);
+    TcpConnection* connection = new TcpConnection(connected_fd, event_loop, application_factory);
     connection->Init();
     channel.reset(static_cast<Channel*>(connection));
     return channel;
@@ -16,7 +16,7 @@ std::shared_ptr<Channel> TcpConnection::MakeChannel(int connected_fd, EventLoop 
 int TcpConnection::EventReadCallback() {
     if (input_buffer_->SocketRead(fd_) > 0) {
         //应用程序真正读取Buffer里的数据
-        application_->MessageCallBack(this);
+        application_->MessageCallBack();
     } else {
         HandleConnectionClosed();
     }
@@ -25,7 +25,7 @@ int TcpConnection::EventReadCallback() {
 
 // EventReadCallback中调用，处理connection关闭的情况
 int TcpConnection::HandleConnectionClosed() {
-    application_->ConnectionClosedCallBack(this);
+    application_->ConnectionClosedCallBack();
     GetEventLoop()->RemoveChannel(fd_);
     Shutdown();
 }
@@ -43,7 +43,7 @@ int TcpConnection::EventWriteCallback() {
             GetEventLoop()->UpdateChannelEvent(fd_);
         }
         //回调WriteCompletedCallBack
-        application_->WriteCompletedCallBack(this);
+        application_->WriteCompletedCallBack();
     } else {
         yolanda_msgx("HandleWrite for %s", GetDescription().c_str());
     }

@@ -10,29 +10,32 @@ namespace networking {
 
 class HttpApplication: public TcpApplication {
 public:
-    HttpApplication(): TcpApplication("http_application") {}
+    HttpApplication(TcpConnection* connection): TcpApplication(connection, "http_application") {}
 
-    ~HttpApplication() { std::cout << "~HttpApplication()" << std::endl; }
+    ~HttpApplication() {std::cout << "~HttpApplication()" << std::endl;}
 
-    static std::shared_ptr<TcpApplication> MakeTcpApplication() {
+    int ConnectionCompletedCallBack() override;
+    int ConnectionClosedCallBack() override;
+    int MessageCallBack() override;
+    int WriteCompletedCallBack() override;
+    
+};
+
+class HttpApplicationFactory: public TcpApplicationFactory {
+public:
+    virtual std::shared_ptr<TcpApplication> MakeTcpApplication(TcpConnection* connection) {
         std::shared_ptr<TcpApplication> tcp_application;
-        tcp_application.reset(static_cast<TcpApplication*>(new HttpApplication()));
+        tcp_application.reset(static_cast<TcpApplication*>(new HttpApplication(connection)));
         return tcp_application;
     }
-
-
-    int ConnectionCompletedCallBack(TcpConnection* connection) override;
-    int ConnectionClosedCallBack(TcpConnection* connection) override;
-    int MessageCallBack(TcpConnection* connection) override;
-    int WriteCompletedCallBack(TcpConnection* connection) override;
-    
+    ~HttpApplicationFactory() { std::cout << "~HttpApplicationFactory()" << std::endl; }
 };
 
 class HttpServer {
 public:
     HttpServer(int thread_num, int listen_port) {
         // 传入 std::shared_ptr<TcpApplication> 会被提前析构掉
-        tcp_server_ = std::make_shared<TcpServer>(thread_num, listen_port, &HTTP_APPLICATION);
+        tcp_server_ = std::make_shared<TcpServer>(thread_num, listen_port, &HTTP_APPLICATION_FACTORY);
     }
 
     ~HttpServer() {}
@@ -43,7 +46,7 @@ private:
     void ParseHttpRequest();
 
     std::shared_ptr<TcpServer> tcp_server_;
-    static HttpApplication HTTP_APPLICATION;
+    static HttpApplicationFactory HTTP_APPLICATION_FACTORY; // 构建HttpApplication的方法
 };
 
 }

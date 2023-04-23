@@ -8,32 +8,39 @@ class TcpConnection;
 
 class TcpApplication {
 public:
-    TcpApplication(const std::string& name): name_(name) {}
+    TcpApplication(TcpConnection* connection, const std::string& name): connection_(connection), name_(name) {}
 
     virtual ~TcpApplication() {}
 
-    virtual int ConnectionCompletedCallBack(TcpConnection* connection) = 0;
-    virtual int ConnectionClosedCallBack(TcpConnection* connection) = 0;
-    virtual int MessageCallBack(TcpConnection* connection) = 0;
-    virtual int WriteCompletedCallBack(TcpConnection* connection) = 0;
+    virtual int ConnectionCompletedCallBack() = 0;
+    virtual int ConnectionClosedCallBack() = 0;
+    virtual int MessageCallBack() = 0;
+    virtual int WriteCompletedCallBack() = 0;
 
 protected:
+    TcpConnection* connection_ = nullptr;
     std::string name_;
+};
+
+class TcpApplicationFactory {
+public:
+    virtual ~TcpApplicationFactory() {};
+    virtual std::shared_ptr<TcpApplication> MakeTcpApplication(TcpConnection* connection) = 0;
 };
 
 
 class TcpServer {
 public:
-    TcpServer(int thread_num, int listen_port, TcpApplication* application): 
+    TcpServer(int thread_num, int listen_port, TcpApplicationFactory* application_factory): 
         thread_num_(std::max(1, thread_num)),
         listen_port_(listen_port),
-        application_(application) {}
+        application_factory_(application_factory) {}
 
     void Start();
 
     EventLoop* SelectSubEventLoop();
 
-    TcpApplication* GetTcpApplication() { return application_; }
+    TcpApplicationFactory* GetTcpApplicationFactory() { return application_factory_; }
 
 protected:
 
@@ -52,7 +59,8 @@ protected:
 
     // 当前选用的event_loop对应的index，用来决定选择哪个event_loop_thread服务
     int position_ = 0;
-    TcpApplication* application_ = nullptr;
+    // TcpApplication* application_ = nullptr;
+    TcpApplicationFactory* application_factory_ = nullptr;
 };
 
 }

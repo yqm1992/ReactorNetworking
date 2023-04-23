@@ -4,26 +4,26 @@
 
 namespace networking {
 
-HttpApplication  HttpServer::HTTP_APPLICATION;
+HttpApplicationFactory HttpServer::HTTP_APPLICATION_FACTORY;
 
-int HttpApplication::ConnectionCompletedCallBack(TcpConnection* connection) {
+int HttpApplication::ConnectionCompletedCallBack() {
     yolanda_msgx("ConnectionCompletedCallBack");
     return 0;
 }
 
-int HttpApplication::ConnectionClosedCallBack(TcpConnection* connection) {
+int HttpApplication::ConnectionClosedCallBack() {
     yolanda_msgx("ConnectionClosedCallBack");
     return 0;
 }
 
-int HttpApplication::MessageCallBack(TcpConnection* connection) {
+int HttpApplication::MessageCallBack() {
     yolanda_msgx("MessageCallBack");
-    std::cout << connection->GetInputBuffer()->ReadStartPos() << std::endl;
-    connection->SendData("Hello world\n", 13);
+    std::cout << connection_->GetInputBuffer()->ReadStartPos() << std::endl;
+    connection_->SendData("Hello world\n", 13);
     return 0;
 }
 
-int HttpApplication::WriteCompletedCallBack(TcpConnection* connection) {
+int HttpApplication::WriteCompletedCallBack() {
     yolanda_msgx("WriteCompletedCallBack");
     return 0;
 }

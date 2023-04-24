@@ -6,11 +6,11 @@ namespace networking {
 
 class TcpConnection;
 
-class TcpApplication {
+class TcpApplicationLayer {
 public:
-    TcpApplication(TcpConnection* connection, const std::string& name): connection_(connection), name_(name) {}
+    TcpApplicationLayer(TcpConnection* connection, const std::string& name): connection_(connection), name_(name) {}
 
-    virtual ~TcpApplication() {}
+    virtual ~TcpApplicationLayer() {}
 
     virtual int ConnectionCompletedCallBack() = 0;
     virtual int ConnectionClosedCallBack() = 0;
@@ -22,25 +22,25 @@ protected:
     std::string name_;
 };
 
-class TcpApplicationFactory {
+class TcpApplicationLayerFactory {
 public:
-    virtual ~TcpApplicationFactory() {};
-    virtual std::shared_ptr<TcpApplication> MakeTcpApplication(TcpConnection* connection) = 0;
+    virtual ~TcpApplicationLayerFactory() {};
+    virtual std::shared_ptr<TcpApplicationLayer> MakeTcpApplicationLayer(TcpConnection* connection) = 0;
 };
 
 
 class TcpServer {
 public:
-    TcpServer(int thread_num, int listen_port, TcpApplicationFactory* application_factory): 
+    TcpServer(int thread_num, int listen_port, TcpApplicationLayerFactory* application_layer_factory): 
         thread_num_(std::max(1, thread_num)),
         listen_port_(listen_port),
-        application_factory_(application_factory) {}
+        application_layer_factory_(application_layer_factory) {}
 
     void Start();
 
     EventLoop* SelectSubEventLoop();
 
-    TcpApplicationFactory* GetTcpApplicationFactory() { return application_factory_; }
+    TcpApplicationLayerFactory* GetTcpApplicationLayerFactory() { return application_layer_factory_; }
 
 protected:
 
@@ -59,8 +59,8 @@ protected:
 
     // 当前选用的event_loop对应的index，用来决定选择哪个event_loop_thread服务
     int position_ = 0;
-    // TcpApplication* application_ = nullptr;
-    TcpApplicationFactory* application_factory_ = nullptr;
+    // TcpApplicationLayer* application_ = nullptr;
+    TcpApplicationLayerFactory* application_layer_factory_ = nullptr;
 };
 
 }

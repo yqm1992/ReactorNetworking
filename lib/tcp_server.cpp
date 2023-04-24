@@ -3,22 +3,22 @@
 
 namespace networking {
 
-// int TcpApplication::ConnectionCompletedCallBack(TcpConnection* connection) {
+// int TcpApplicationLayer::ConnectionCompletedCallBack(TcpConnection* connection) {
 //     yolanda_msgx("ConnectionCompletedCallBack");
 //     return 0;
 // }
 
-// int TcpApplication::ConnectionClosedCallBack(TcpConnection* connection) {
+// int TcpApplicationLayer::ConnectionClosedCallBack(TcpConnection* connection) {
 //     yolanda_msgx("ConnectionClosedCallBack");
 //     return 0;
 // }
 
-// int TcpApplication::MessageCallBack(TcpConnection* connection) {
+// int TcpApplicationLayer::MessageCallBack(TcpConnection* connection) {
 //     yolanda_msgx("MessageCallBack");
 //     return 0;
 // }
 
-// int TcpApplication::WriteCompletedCallBack(TcpConnection* connection) {
+// int TcpApplicationLayer::WriteCompletedCallBack(TcpConnection* connection) {
 //     yolanda_msgx("WriteCompletedCallBack");
 //     return 0;
 // }
@@ -31,11 +31,7 @@ void TcpServer::Start() {
         cur_thread->Start();
         sub_loop_threads_.push_back(cur_thread);
     }
-    auto acceptor = new Acceptor();
-    acceptor->Init(this, listen_port_);
-    std::shared_ptr<Channel> channel;
-    channel.reset(static_cast<Channel*>(acceptor));
-    main_loop_thread_->GetEventLoop()->AddChannel(channel);
+    main_loop_thread_->GetEventLoop()->AddChannel(Acceptor::MakeChannel(this, listen_port_));
 }
 
 EventLoop* TcpServer::SelectSubEventLoop() {

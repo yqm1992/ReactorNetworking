@@ -10,7 +10,7 @@ namespace networking {
 class Buffer {
 public:
     friend class TcpConnection;
-    friend class TcpApplication;
+    friend class TcpApplicationLayer;
 
     Buffer(): read_index_(0), write_index_(0) {
         data_ = new char[INIT_BUFFER_SIZE];
@@ -19,7 +19,9 @@ public:
 
     ~Buffer() { delete data_; }
 
-    char* ReadStartPos() { return data_ + read_index_; }
+    char* ReadStart() { return data_ + read_index_; }
+
+    void DiscardReadableData(int size) { read_index_ += std::min(ReadableSize(), size); }
     
     int WritableSize() { return total_size_ - write_index_; }
 

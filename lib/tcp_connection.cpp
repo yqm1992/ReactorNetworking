@@ -4,9 +4,9 @@
 namespace networking {
 // TODO: 想一下TcpConnection的生命周期是怎样的
 
-std::shared_ptr<Channel> TcpConnection::MakeChannel(int connected_fd, EventLoop *event_loop, TcpApplicationFactory* application_factory) {
+std::shared_ptr<Channel> TcpConnection::MakeChannel(int connected_fd, EventLoop *event_loop, TcpApplicationLayerFactory* application_layer_factory) {
     std::shared_ptr<Channel> channel;
-    TcpConnection* connection = new TcpConnection(connected_fd, event_loop, application_factory);
+    TcpConnection* connection = new TcpConnection(connected_fd, event_loop, application_layer_factory);
     connection->Init();
     channel.reset(static_cast<Channel*>(connection));
     return channel;
@@ -86,7 +86,7 @@ int TcpConnection::SendData(const char *data, int size) {
 
 int TcpConnection::SendBuffer(Buffer *buffer) {
     int size = buffer->ReadableSize();
-    int result = SendData(buffer->ReadStartPos(), size);
+    int result = SendData(buffer->ReadStart(), size);
     buffer->read_index_ += size;
     return result;
 }

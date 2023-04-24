@@ -3,39 +3,47 @@
 #include <memory>
 #include "tcp_connection.h"
 #include "tcp_server.h"
+#include "http_request.h"
+#include "http_response.h"
 
 #include <iostream>
 
 namespace networking {
 
-class HttpApplication: public TcpApplication {
+class HttpLayer: public TcpApplicationLayer {
 public:
-    HttpApplication(TcpConnection* connection): TcpApplication(connection, "http_application") {}
+    HttpLayer(TcpConnection* connection): TcpApplicationLayer(connection, "http_layer") {}
 
-    ~HttpApplication() {std::cout << "~HttpApplication()" << std::endl;}
+    ~HttpLayer() {std::cout << "~HttpLayer()" << std::endl;}
 
     int ConnectionCompletedCallBack() override;
     int ConnectionClosedCallBack() override;
     int MessageCallBack() override;
     int WriteCompletedCallBack() override;
-    
+private:
+    static const char* Find(const char *start, int size, const char* target, int target_size);
+    int ProcessStatusLine(const char *start, const char *end);
+    int ParseHttpRequest();
+
+    std::shared_ptr<HttpRequest> http_request_;
+    std::shared_ptr<HttpResponse> http_response_;
 };
 
-class HttpApplicationFactory: public TcpApplicationFactory {
+class HttpLayerFactory: public TcpApplicationLayerFactory {
 public:
-    virtual std::shared_ptr<TcpApplication> MakeTcpApplication(TcpConnection* connection) {
-        std::shared_ptr<TcpApplication> tcp_application;
-        tcp_application.reset(static_cast<TcpApplication*>(new HttpApplication(connection)));
+    virtual std::shared_ptr<TcpApplicationLayer> MakeTcpApplicationLayer(TcpConnection* connection) {
+        std::shared_ptr<TcpApplicationLayer> tcp_application;
+        tcp_application.reset(static_cast<TcpApplicationLayer*>(new HttpLayer(connection)));
         return tcp_application;
     }
-    ~HttpApplicationFactory() { std::cout << "~HttpApplicationFactory()" << std::endl; }
+    ~HttpLayerFactory() { std::cout << "~HttpLayerFactory()" << std::endl; }
 };
 
 class HttpServer {
 public:
     HttpServer(int thread_num, int listen_port) {
-        // 传入 std::shared_ptr<TcpApplication> 会被提前析构掉
-        tcp_server_ = std::make_shared<TcpServer>(thread_num, listen_port, &HTTP_APPLICATION_FACTORY);
+        // 传入 std::shared_ptr<TcpApplicationLayer> 会被提前析构掉
+        tcp_server_ = std::make_shared<TcpServer>(thread_num, listen_port, &HTTP_LAYER_FACTORY);
     }
 
     ~HttpServer() {}
@@ -43,10 +51,9 @@ public:
     void Start() { tcp_server_->Start(); }
     
 private:
-    void ParseHttpRequest();
 
     std::shared_ptr<TcpServer> tcp_server_;
-    static HttpApplicationFactory HTTP_APPLICATION_FACTORY; // 构建HttpApplication的方法
+    static HttpLayerFactory HTTP_LAYER_FACTORY; // 构建HttpLayer的方法
 };
 
 }

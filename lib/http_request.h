@@ -1,5 +1,8 @@
 #pragma once
 
+#include <string>
+#include <list>
+
 namespace networking {
 
 struct RequestHeader {
@@ -9,14 +12,16 @@ struct RequestHeader {
 };
 
 enum HttpRequestState: int {
-    REQUEST_STATUS,    //等待解析状态行
-    REQUEST_HEADERS,   //等待解析headers
-    REQUEST_BODY,      //等待解析请求body
-    REQUEST_DONE       //解析完成
+    REQUEST_STATUS,    // 等待解析状态行
+    REQUEST_HEADERS,   // 等待解析headers
+    REQUEST_BODY,      // 等待解析请求body
+    REQUEST_DONE       // 解析完成
 };
 
 class HttpRequest {
 public:
+    friend class HttpLayer;
+
     //初始化一个request对象
     HttpRequest() {}
 

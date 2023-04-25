@@ -148,12 +148,17 @@ int EventLoop::HandlePendingRemove(int fd) {
 
     yolanda_msgx("remove channel %s, %s", found_channel->GetDescription().c_str(), name_.c_str());
 
-    //update dispatcher(multi-thread)here
-    int retval = (event_dispatcher_->Del(*found_channel) == -1) ? -1 : 1;
-    if (retval == 1) {
-        channel_map_.erase(fd);
+    // close channel
+    if (found_channel->Close() < 0) {
+        return -1;
     }
-    return retval;
+    // remove from dispatcher (multi-thread) here
+    if (event_dispatcher_->Del(*found_channel) < 0) {
+        return -1;
+    }
+    // remove from channel_map_
+    channel_map_.erase(fd);
+    return 1;
 }
 
 // in the i/o thread
@@ -223,5 +228,9 @@ int EventLoop::Run() {
     yolanda_msgx("event loop end, %s", name_.c_str());
     return 0;
 }
+
+// Close连接： 框架 read(fd) == 0 || error，需要RemoveChannel（会调用channel->Close()）
+//
+// 上层主动Shutdown，DISABLE WriteEvent + UpdateChannel
 
 }

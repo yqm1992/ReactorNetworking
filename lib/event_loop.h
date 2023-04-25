@@ -26,6 +26,10 @@ class EventLoop;
 class WakeupChannel: public Channel {
 public:
     void Init(EventLoop* event_loop, int fd);
+
+    virtual int Close() override {
+        return close(fd_);
+    }
     
     virtual int EventReadCallback() override;
     

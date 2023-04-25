@@ -6,6 +6,14 @@
 
 namespace networking {
 
+std::shared_ptr<Channel> Acceptor::MakeChannel(TcpServer* tcp_server, int listen_port) {
+    auto acceptor = new Acceptor();
+    acceptor->Init(tcp_server, listen_port);
+    std::shared_ptr<Channel> channel;
+    channel.reset(static_cast<Channel*>(acceptor));
+    return channel;
+}
+
 bool Acceptor::MakeNonblocking(int fd) {
     return fcntl(fd, F_SETFL, O_NONBLOCK) == 0;
 }
@@ -51,7 +59,7 @@ bool Acceptor::Init(TcpServer* tcp_server, int listen_port) {
 }
 
 // Acceptor 要能够获取所有SubEventLoop
-int Acceptor::EventReadCallback() {
+int Acceptor::HandleConnectionEstablised() {
     struct sockaddr client_addr;
     socklen_t client_len;
 
@@ -71,6 +79,7 @@ int Acceptor::EventReadCallback() {
     auto io_loop = tcp_server->SelectSubEventLoop();
     auto application_layer_factory = tcp_server->GetTcpApplicationLayerFactory();
     io_loop->AddChannel(TcpConnection::MakeChannel(conn_fd, io_loop, application_layer_factory));
+    return 0;
 }
 
 }

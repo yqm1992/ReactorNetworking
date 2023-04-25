@@ -15,15 +15,9 @@ public:
     
     // virtual int EventWriteCallback() override;
 
-    virtual int EventReadCallback() override; 
+    virtual int EventReadCallback() override { return HandleConnectionEstablised(); } 
 
-    static std::shared_ptr<Channel> MakeChannel(TcpServer* tcp_server, int listen_port) {
-        auto acceptor = new Acceptor();
-        acceptor->Init(tcp_server, listen_port);
-        std::shared_ptr<Channel> channel;
-        channel.reset(static_cast<Channel*>(acceptor));
-        return channel;
-    }
+    static std::shared_ptr<Channel> MakeChannel(TcpServer* tcp_server, int listen_port);
 
     static bool MakeNonblocking(int fd);
 
@@ -31,6 +25,8 @@ public:
 
 private:
     TcpServer* GetTcpServer() { return static_cast<TcpServer*>(data_); }
+
+    int HandleConnectionEstablised();
 
     int listen_port_;
 } ;

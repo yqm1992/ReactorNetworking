@@ -31,7 +31,7 @@ int Buffer::Append(const char *data, int size) {
     if (data != nullptr) {
         MakeRoom(size);
         //拷贝数据到可写空间中
-        memcpy(data_ + write_index_, data_, size);
+        memcpy(data_ + write_index_, data, size);
         write_index_ += size;
     }
 }

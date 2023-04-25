@@ -7,7 +7,7 @@ namespace networking {
 
 void HttpResponse::EncodeBuffer(Buffer *output) {
     char buf[32];
-    snprintf(buf, sizeof buf, "HTTP/1.1 %d ", status_code_);
+    snprintf(buf, sizeof(buf), "HTTP/1.1 %d ", status_code_);
     output->AppendString(buf);
     output->AppendString(buf);
     output->AppendString(status_message_.c_str());

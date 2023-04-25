@@ -26,7 +26,7 @@ int TcpConnection::EventReadCallback() {
 // EventReadCallback中调用，处理connection关闭的情况
 int TcpConnection::HandleConnectionClosed() {
     application_->ConnectionClosedCallBack();
-    GetEventLoop()->RemoveChannel(fd_);
+    // GetEventLoop()->RemoveChannel(fd_);
     Shutdown();
 }
 
@@ -84,11 +84,9 @@ int TcpConnection::SendData(const char *data, int size) {
     return writed_socket_size;
 }
 
-int TcpConnection::SendBuffer(Buffer *buffer) {
-    int size = buffer->ReadableSize();
-    int result = SendData(buffer->ReadStart(), size);
-    buffer->read_index_ += size;
-    return result;
+// 不会改变buffer
+int TcpConnection::SendBuffer(const Buffer& buffer) {
+    return SendData(buffer.ReadStart(), buffer.ReadableSize());
 }
 
 void TcpConnection::Shutdown() {

@@ -11,7 +11,7 @@ struct ResponseHeader {
     std::string value;
 };
 
-enum HttpStatusCode {
+enum HttpStatusCode: int {
     Unknown,
     OK = 200,
     MovedPermanently = 301,
@@ -21,12 +21,14 @@ enum HttpStatusCode {
 
 class HttpResponse {
 public:
+    friend class HttpLayer;
+
     HttpResponse() {}
 
     void EncodeBuffer(Buffer* buffer);
 
 private:
-    HttpStatusCode status_code_;
+    HttpStatusCode status_code_ = Unknown;
     std::string status_message_;
     std::string content_type_;
     std::string body_;

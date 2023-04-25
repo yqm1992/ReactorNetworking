@@ -86,7 +86,10 @@ bool EpollDispatcher::Dispatch(struct timeval *timeval) {
     for (int i = 0; i < len; i++) {
         const auto& cur_event = events_[i];
         if ((cur_event.events & EPOLLERR) || (cur_event.events & EPOLLHUP)) {
-            fprintf(stderr, "epoll error\n");
+            fprintf(stderr, "epoll error on [fd=%d]\n", cur_event.data.fd);
+            // RemoveChannel 应该包含三个动作
+            // 1、channel->Close() 2、从epoll中删除fd 3、从channel_map中删除fd
+            // 回调函数中，只允许调用connection->Shutdown来关闭写连接，close统一由RemoveChannel来完成
             event_loop_->RemoveChannel(cur_event.data.fd);
             continue;
         }

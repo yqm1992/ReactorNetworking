@@ -19,13 +19,13 @@ public:
 
     ~Buffer() { delete data_; }
 
-    char* ReadStart() { return data_ + read_index_; }
+    char* ReadStart() const { return data_ + read_index_; }
 
     void DiscardReadableData(int size) { read_index_ += std::min(ReadableSize(), size); }
     
-    int WritableSize() { return total_size_ - write_index_; }
+    int WritableSize() const { return total_size_ - write_index_; }
 
-    int ReadableSize() { return write_index_ - read_index_; }
+    int ReadableSize() const { return write_index_ - read_index_; }
 
     int FrontSpareSize() { return read_index_; }
 

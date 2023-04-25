@@ -33,13 +33,17 @@ public:
 
     static std::shared_ptr<Channel> MakeChannel(int connected_fd, EventLoop *event_loop, TcpApplicationLayerFactory* application_layer_factory);
 
+    virtual int Close() override {
+        return close(fd_);
+    }
+
     virtual int EventReadCallback() override;
     virtual int EventWriteCallback() override;
 
     int HandleConnectionClosed();
 
     int SendData(const char *data, int size);
-    int SendBuffer(Buffer *buffer);
+    int SendBuffer(const Buffer& buffer);
     void Shutdown();
     Buffer* GetInputBuffer() { return input_buffer_.get(); }
 

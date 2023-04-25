@@ -41,6 +41,8 @@ public:
         return std::move(ret);
     }
 
+    virtual int Close() { return 0; };
+
     virtual int EventReadCallback() { return 0; } 
 
     virtual int EventWriteCallback() { return 0; }

@@ -21,12 +21,17 @@ public:
     int MessageCallBack() override;
     int WriteCompletedCallBack() override;
 private:
-    static const char* Find(const char *start, int size, const char* target, int target_size);
+    static const char* FindPattern(const char *start, int size, const char* target, int target_size);
+    static int OnHttpRequest(const HttpRequest& http_request, HttpResponse* http_response);
+
     int ProcessStatusLine(const char *start, const char *end);
     int ParseHttpRequest();
 
-    std::shared_ptr<HttpRequest> http_request_;
-    std::shared_ptr<HttpResponse> http_response_;
+    // std::shared_ptr<HttpRequest> http_request_;
+    // std::shared_ptr<HttpResponse> http_response_;
+
+    HttpRequest http_request_;
+    HttpResponse http_response_;
 };
 
 class HttpLayerFactory: public TcpApplicationLayerFactory {

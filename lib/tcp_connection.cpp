@@ -18,8 +18,8 @@ int TcpConnection::EventReadCallback() {
 // EventReadCallback中调用，处理connection关闭的情况
 int TcpConnection::HandleConnectionClosed() {
     application_->ConnectionClosedCallBack();
-    // GetEventLoop()->RemoveChannel(fd_);
-    Shutdown();
+    GetEventLoop()->RemoveChannel(fd_);
+    // Shutdown();
 }
 
 // 从output_buffer 读取数据，然后写入到socket

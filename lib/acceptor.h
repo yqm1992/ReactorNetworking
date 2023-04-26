@@ -35,8 +35,8 @@ protected:
     std::shared_ptr<Channel> MakeTcpConnectionChannel(int connected_fd, EventLoop *event_loop);
 
     // TcpConnection中包含的应用类对象，在创建connection的时候调用
-    virtual std::shared_ptr<TcpApplicationLayer> MakeTcpApplicationLayer(TcpConnection * connection) { 
-        return std::make_shared<TcpApplicationLayer>(connection, "DefaultTcpApplicationLayer"); 
+    virtual std::shared_ptr<TcpApplication> MakeTcpApplication(TcpConnection * connection) { 
+        return std::make_shared<TcpApplication>(connection, "DefaultTcpApplication"); 
     }
 
     TcpServer* GetTcpServer() { return static_cast<TcpServer*>(data_); }

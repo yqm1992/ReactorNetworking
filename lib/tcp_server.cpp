@@ -3,22 +3,22 @@
 
 namespace networking {
 
-// int TcpApplicationLayer::ConnectionCompletedCallBack(TcpConnection* connection) {
+// int TcpApplication::ConnectionCompletedCallBack(TcpConnection* connection) {
 //     yolanda_msgx("ConnectionCompletedCallBack");
 //     return 0;
 // }
 
-// int TcpApplicationLayer::ConnectionClosedCallBack(TcpConnection* connection) {
+// int TcpApplication::ConnectionClosedCallBack(TcpConnection* connection) {
 //     yolanda_msgx("ConnectionClosedCallBack");
 //     return 0;
 // }
 
-// int TcpApplicationLayer::MessageCallBack(TcpConnection* connection) {
+// int TcpApplication::MessageCallBack(TcpConnection* connection) {
 //     yolanda_msgx("MessageCallBack");
 //     return 0;
 // }
 
-// int TcpApplicationLayer::WriteCompletedCallBack(TcpConnection* connection) {
+// int TcpApplication::WriteCompletedCallBack(TcpConnection* connection) {
 //     yolanda_msgx("WriteCompletedCallBack");
 //     return 0;
 // }

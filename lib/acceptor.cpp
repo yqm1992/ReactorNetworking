@@ -6,22 +6,11 @@
 
 namespace networking {
 
-// std::shared_ptr<Channel> Acceptor::MakeAcceptorChannel(int listen_port) {
-//     auto acceptor = new Acceptor(listen_port);
-//     acceptor->Init();
-//     std::shared_ptr<Channel> channel;
-//     channel.reset(static_cast<Channel*>(acceptor));
-//     return channel;
-// }
-
-std::shared_ptr<Channel> Acceptor::MakeTcpConnectionChannel(int connected_fd, EventLoop *event_loop) {
-    auto tcp_server = GetTcpServer();
-    // 选出一个EventLoop
-    auto io_loop = tcp_server->SelectSubEventLoop();
+std::shared_ptr<Channel> Acceptor::MakeTcpConnectionChannel(int connected_fd, EventLoop *io_event_loop) {
     // 新建tcp_connction
-    TcpConnection* tcp_connection = new TcpConnection(connected_fd, event_loop);
+    TcpConnection* tcp_connection = new TcpConnection(connected_fd, io_event_loop);
     // 先初始化应用层对象tcp_application
-    auto tcp_application = MakeTcpApplicationLayer(tcp_connection);
+    auto tcp_application = MakeTcpApplication(tcp_connection);
     // 再用tcp_application初始化tcp_connection
     tcp_connection->Init(tcp_application);
 
@@ -92,8 +81,7 @@ int Acceptor::HandleConnectionEstablised() {
     yolanda_msgx("new connection fd = %d", conn_fd);
     // close(fd_);
     
-    auto tcp_server = GetTcpServer();
-    auto io_loop = tcp_server->SelectSubEventLoop();
+    auto io_loop = GetTcpServer()->SelectSubEventLoop();
     io_loop->AddChannel(MakeTcpConnectionChannel(conn_fd, io_loop));
     return 0;
 }

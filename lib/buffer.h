@@ -10,7 +10,7 @@ namespace networking {
 class Buffer {
 public:
     friend class TcpConnection;
-    friend class TcpApplicationLayer;
+    friend class TcpApplication;
 
     Buffer(): read_index_(0), write_index_(0) {
         data_ = new char[INIT_BUFFER_SIZE];

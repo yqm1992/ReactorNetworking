@@ -7,14 +7,14 @@
 
 namespace networking {
 
-class TcpApplicationLayer;
+class TcpApplication;
 class TcpConnection;
 
-class TcpApplicationLayer {
+class TcpApplication {
 public:
-    TcpApplicationLayer(TcpConnection* connection, const std::string& name): connection_(connection), name_(name) {}
+    TcpApplication(TcpConnection* connection, const std::string& name): connection_(connection), name_(name) {}
 
-    virtual ~TcpApplicationLayer() {}
+    virtual ~TcpApplication() {}
 
     virtual int ConnectionCompletedCallBack() { return 0; }
     virtual int ConnectionClosedCallBack() { return 0; }
@@ -29,7 +29,7 @@ protected:
 class TcpConnection: public Channel {
 public:
     friend class Acceptor;
-    friend class TcpApplicationLayer;
+    friend class TcpApplication;
 
     TcpConnection(int connected_fd, EventLoop *event_loop) {
         Set(connected_fd, CHANNEL_EVENT_READ, static_cast<void *>(event_loop), "connection");
@@ -43,7 +43,7 @@ public:
 
     ~TcpConnection() {}
 
-    void Init(std::shared_ptr<TcpApplicationLayer> application) {
+    void Init(std::shared_ptr<TcpApplication> application) {
         application_ = application;
         application_->ConnectionCompletedCallBack();
     }
@@ -69,7 +69,7 @@ private:
     std::shared_ptr<Buffer> input_buffer_;   //接收缓冲区
     std::shared_ptr<Buffer> output_buffer_;  //发送缓冲区
 
-    std::shared_ptr<TcpApplicationLayer> application_;  // Tcp上层应用，比如Http
+    std::shared_ptr<TcpApplication> application_;  // Tcp上层应用，比如Http
 };
 
 }

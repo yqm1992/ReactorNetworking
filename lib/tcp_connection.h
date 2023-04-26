@@ -8,16 +8,33 @@
 namespace networking {
 
 class TcpApplicationLayer;
+class TcpConnection;
+
+class TcpApplicationLayer {
+public:
+    TcpApplicationLayer(TcpConnection* connection, const std::string& name): connection_(connection), name_(name) {}
+
+    virtual ~TcpApplicationLayer() {}
+
+    virtual int ConnectionCompletedCallBack() { return 0; }
+    virtual int ConnectionClosedCallBack() { return 0; }
+    virtual int MessageCallBack() { return 0; }
+    virtual int WriteCompletedCallBack() { return 0; }
+
+protected:
+    TcpConnection* connection_ = nullptr;
+    std::string name_;
+};
 
 class TcpConnection: public Channel {
 public:
+    friend class Acceptor;
     friend class TcpApplicationLayer;
 
-    TcpConnection(int connected_fd, EventLoop *event_loop, TcpApplicationLayerFactory* application_layer_factory) {
+    TcpConnection(int connected_fd, EventLoop *event_loop) {
         Set(connected_fd, CHANNEL_EVENT_READ, static_cast<void *>(event_loop), "connection");
         input_buffer_ = std::make_shared<Buffer>();
         output_buffer_ = std::make_shared<Buffer>();
-        application_layer_factory_ = application_layer_factory;
 
         // char *buf = malloc(16);
         // sprintf(buf, "connection-%d\0", connected_fd);
@@ -26,12 +43,10 @@ public:
 
     ~TcpConnection() {}
 
-    void Init() {
-        application_ = application_layer_factory_->MakeTcpApplicationLayer(this);
+    void Init(std::shared_ptr<TcpApplicationLayer> application) {
+        application_ = application;
         application_->ConnectionCompletedCallBack();
     }
-
-    static std::shared_ptr<Channel> MakeChannel(int connected_fd, EventLoop *event_loop, TcpApplicationLayerFactory* application_layer_factory);
 
     virtual int Close() override {
         return close(fd_);
@@ -55,11 +70,6 @@ private:
     std::shared_ptr<Buffer> output_buffer_;  //发送缓冲区
 
     std::shared_ptr<TcpApplicationLayer> application_;  // Tcp上层应用，比如Http
-    TcpApplicationLayerFactory* application_layer_factory_; // 构建Tcp上层应用的方法
-
-    // void * data; //for callback use: http_server
-    // void * request; // for callback use
-    // void * response; // for callback use
 };
 
 }

@@ -2,6 +2,7 @@
 
 #include "common.h"
 #include "channel.h"
+#include "tcp_connection.h"
 #include "tcp_server.h"
 
 namespace networking {
@@ -9,21 +10,35 @@ namespace networking {
 class Acceptor: public Channel {
 public:
 
-    Acceptor() {}   
+    friend class TcpServer;
 
-    bool Init(TcpServer* tcp_server, int port);
+    Acceptor(int listen_port): listen_port_(listen_port) {}
+
+    virtual ~Acceptor() {}
+
+    bool Init();
+
+    void SetTcpServer(TcpServer* tcp_server) { data_ = static_cast<void *>(tcp_server); }
     
     // virtual int EventWriteCallback() override;
 
     virtual int EventReadCallback() override { return HandleConnectionEstablised(); } 
 
-    static std::shared_ptr<Channel> MakeChannel(TcpServer* tcp_server, int listen_port);
+    // static std::shared_ptr<Channel> MakeAcceptorChannel(int listen_port);
 
     static bool MakeNonblocking(int fd);
 
     static int GetListenFD(int listen_port);
 
-private:
+protected:
+
+    std::shared_ptr<Channel> MakeTcpConnectionChannel(int connected_fd, EventLoop *event_loop);
+
+    // TcpConnection中包含的应用类对象，在创建connection的时候调用
+    virtual std::shared_ptr<TcpApplicationLayer> MakeTcpApplicationLayer(TcpConnection * connection) { 
+        return std::make_shared<TcpApplicationLayer>(connection, "DefaultTcpApplicationLayer"); 
+    }
+
     TcpServer* GetTcpServer() { return static_cast<TcpServer*>(data_); }
 
     int HandleConnectionEstablised();

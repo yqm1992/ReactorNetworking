@@ -7,8 +7,10 @@ using namespace networking;
 int main() {
     int thread_num = 2;
     int listen_port = 43211;
-    networking::HttpServer http_server(thread_num, listen_port);
-    http_server.Start();
+
+    auto acceptor_channel = HttpAcceptor::MakeHttpAcceptorChannel(listen_port);
+    networking::HttpServer http_server(thread_num);
+    http_server.Start(acceptor_channel);
     return 0;
 }
 

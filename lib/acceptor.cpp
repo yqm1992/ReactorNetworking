@@ -6,12 +6,29 @@
 
 namespace networking {
 
-std::shared_ptr<Channel> Acceptor::MakeChannel(TcpServer* tcp_server, int listen_port) {
-    auto acceptor = new Acceptor();
-    acceptor->Init(tcp_server, listen_port);
-    std::shared_ptr<Channel> channel;
-    channel.reset(static_cast<Channel*>(acceptor));
-    return channel;
+// std::shared_ptr<Channel> Acceptor::MakeAcceptorChannel(int listen_port) {
+//     auto acceptor = new Acceptor(listen_port);
+//     acceptor->Init();
+//     std::shared_ptr<Channel> channel;
+//     channel.reset(static_cast<Channel*>(acceptor));
+//     return channel;
+// }
+
+std::shared_ptr<Channel> Acceptor::MakeTcpConnectionChannel(int connected_fd, EventLoop *event_loop) {
+    auto tcp_server = GetTcpServer();
+    // 选出一个EventLoop
+    auto io_loop = tcp_server->SelectSubEventLoop();
+    // 新建tcp_connction
+    TcpConnection* tcp_connection = new TcpConnection(connected_fd, event_loop);
+    // 先初始化应用层对象tcp_application
+    auto tcp_application = MakeTcpApplicationLayer(tcp_connection);
+    // 再用tcp_application初始化tcp_connection
+    tcp_connection->Init(tcp_application);
+
+    std::shared_ptr<Channel> tcp_connection_channel;
+    tcp_connection_channel.reset(static_cast<Channel*>(tcp_connection));
+
+    return tcp_connection_channel;
 }
 
 bool Acceptor::MakeNonblocking(int fd) {
@@ -52,9 +69,9 @@ int Acceptor::GetListenFD(int listen_port) {
     return listen_fd;
 }
 
-bool Acceptor::Init(TcpServer* tcp_server, int listen_port) {
-    int listen_fd = GetListenFD(listen_port);
-    Set(listen_fd, CHANNEL_EVENT_READ, static_cast<TcpServer*>(tcp_server), "acceptor");
+bool Acceptor::Init() {
+    int listen_fd = GetListenFD(listen_port_);
+    Set(listen_fd, CHANNEL_EVENT_READ, nullptr, "acceptor");
     return listen_fd >= 0;
 }
 
@@ -77,8 +94,7 @@ int Acceptor::HandleConnectionEstablised() {
     
     auto tcp_server = GetTcpServer();
     auto io_loop = tcp_server->SelectSubEventLoop();
-    auto application_layer_factory = tcp_server->GetTcpApplicationLayerFactory();
-    io_loop->AddChannel(TcpConnection::MakeChannel(conn_fd, io_loop, application_layer_factory));
+    io_loop->AddChannel(MakeTcpConnectionChannel(conn_fd, io_loop));
     return 0;
 }
 

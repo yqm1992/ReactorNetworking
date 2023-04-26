@@ -23,7 +23,7 @@ namespace networking {
 //     return 0;
 // }
 
-void TcpServer::Start() {
+void TcpServer::Start(std::shared_ptr<Channel> acceptor_channel) {
     main_loop_thread_ = std::make_shared<networking::EventLoopThread>("Main-Loop");
     main_loop_thread_->Start();
     for (int i = 0; i < thread_num_; ++i) {
@@ -31,7 +31,8 @@ void TcpServer::Start() {
         cur_thread->Start();
         sub_loop_threads_.push_back(cur_thread);
     }
-    main_loop_thread_->GetEventLoop()->AddChannel(Acceptor::MakeChannel(this, listen_port_));
+    static_cast<Acceptor*>(acceptor_channel.get())->SetTcpServer(this);
+    main_loop_thread_->GetEventLoop()->AddChannel(acceptor_channel);
 }
 
 EventLoop* TcpServer::SelectSubEventLoop() {

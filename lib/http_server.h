@@ -2,6 +2,7 @@
 
 #include <memory>
 #include "tcp_connection.h"
+#include "acceptor.h"
 #include "tcp_server.h"
 #include "http_request.h"
 #include "http_response.h"
@@ -34,31 +35,40 @@ private:
     HttpResponse http_response_;
 };
 
-class HttpLayerFactory: public TcpApplicationLayerFactory {
+class HttpAcceptor: public Acceptor {
 public:
-    virtual std::shared_ptr<TcpApplicationLayer> MakeTcpApplicationLayer(TcpConnection* connection) {
-        std::shared_ptr<TcpApplicationLayer> tcp_application;
-        tcp_application.reset(static_cast<TcpApplicationLayer*>(new HttpLayer(connection)));
-        return tcp_application;
+    HttpAcceptor(int listen_port): Acceptor(listen_port) {}
+
+    static std::shared_ptr<Channel> MakeHttpAcceptorChannel(int listen_port) {
+        auto acceptor = new HttpAcceptor(listen_port);
+        acceptor->Init();
+        std::shared_ptr<Channel> channel;
+        channel.reset(static_cast<Channel*>(acceptor));
+        return channel;
     }
-    ~HttpLayerFactory() { std::cout << "~HttpLayerFactory()" << std::endl; }
+    
+private:
+    virtual std::shared_ptr<TcpApplicationLayer> MakeTcpApplicationLayer(TcpConnection * connection) override { 
+        auto http_layer = new HttpLayer(connection);
+        std::shared_ptr<TcpApplicationLayer> tcp_application_layer;
+        tcp_application_layer.reset(static_cast<TcpApplicationLayer*>(http_layer));
+        return tcp_application_layer; 
+    }
 };
 
 class HttpServer {
 public:
-    HttpServer(int thread_num, int listen_port) {
-        // 传入 std::shared_ptr<TcpApplicationLayer> 会被提前析构掉
-        tcp_server_ = std::make_shared<TcpServer>(thread_num, listen_port, &HTTP_LAYER_FACTORY);
+    HttpServer(int thread_num) {
+        tcp_server_ = std::make_shared<TcpServer>(thread_num);
     }
 
     ~HttpServer() {}
 
-    void Start() { tcp_server_->Start(); }
+    void Start(std::shared_ptr<Channel> acceptor_channel) { tcp_server_->Start(acceptor_channel); }
     
 private:
 
     std::shared_ptr<TcpServer> tcp_server_;
-    static HttpLayerFactory HTTP_LAYER_FACTORY; // 构建HttpLayer的方法
 };
 
 }

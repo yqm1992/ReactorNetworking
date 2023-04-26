@@ -7,7 +7,7 @@
 
 namespace networking {
 
-HttpLayerFactory HttpServer::HTTP_LAYER_FACTORY;
+// HttpLayerFactory HttpServer::HTTP_LAYER_FACTORY;
 
 int HttpLayer::ConnectionCompletedCallBack() {
     yolanda_msgx("connection completed");

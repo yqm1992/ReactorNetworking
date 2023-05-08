@@ -15,6 +15,12 @@ public:
     EpollDispatcher(const std::string& name): Dispatcher(name) {}
 
     ~EpollDispatcher() { Clear(); }
+
+    static std::shared_ptr<Dispatcher> MakeDispatcher() {
+        std::shared_ptr<Dispatcher> dispatcher;
+        dispatcher.reset(static_cast<Dispatcher*>( new EpollDispatcher("epoll") ));
+        return dispatcher;
+    }
     
     virtual bool Init(void* data) override;
 

@@ -27,6 +27,8 @@ public:
 
     void EncodeBuffer(Buffer* buffer);
 
+    void Display();
+
 private:
     HttpStatusCode status_code_ = Unknown;
     std::string status_message_;

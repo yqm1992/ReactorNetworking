@@ -74,6 +74,7 @@ int HttpLayer::MessageCallBack() {
         OnHttpRequest(http_request_, &http_response_);
         Buffer buffer;
         http_response_.EncodeBuffer(&buffer);
+        http_response_.Display();
         connection_->SendBuffer(buffer);
         if (http_request_.CloseConnection()) {
             connection_->Shutdown();

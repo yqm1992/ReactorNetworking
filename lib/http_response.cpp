@@ -1,6 +1,8 @@
 #include "http_response.h"
 #include "common.h"
 
+#include <iostream>
+
 #define INIT_RESPONSE_HEADER_SIZE 128
 
 namespace networking {
@@ -22,13 +24,43 @@ void HttpResponse::EncodeBuffer(Buffer *output) {
 
     for (auto& header: response_headers_) {
         output->AppendString(header.key.c_str());
-            output->AppendString(": ");
-            output->AppendString(header.value.c_str());
-            output->AppendString("\r\n");
+        output->AppendString(": ");
+        output->AppendString(header.value.c_str());
+        output->AppendString("\r\n");
     }
 
     output->AppendString("\r\n");
     output->AppendString(body_.c_str());
+}
+
+void HttpResponse::Display() {
+    std::string line_end = "\\r\\n\n";
+    std::cout << "---------------- response start ----------------" << std::endl;
+    char buf[32];
+
+    snprintf(buf, sizeof(buf), "HTTP/1.1 %d ", status_code_);
+    std::cout << buf;
+    std::cout << status_message_.c_str();
+    std::cout << line_end;
+
+    if (keep_connected_) {
+        std::cout << "Connection: close" << line_end;
+    } else {
+        snprintf(buf, sizeof buf, "Content-Length: %zd\\r\\n\n", strlen(body_.c_str()));
+        std::cout << buf;
+        std::cout << "Connection: Keep-Alive" << line_end;
+    }
+
+    for (auto& header: response_headers_) {
+        std::cout << header.key.c_str();
+        std::cout << ": ";
+        std::cout << header.value.c_str();
+        std::cout << line_end;
+    }
+
+    std::cout << line_end;
+    std::cout << body_.c_str();
+    std::cout << std::endl << "---------------- response end ----------------" << std::endl;
 }
 
 }

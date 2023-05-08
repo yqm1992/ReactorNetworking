@@ -20,7 +20,7 @@ set(yolanda_lib
         tcp_connection.cpp
         http_request.cpp
         http_response.cpp
-        http_server.cpp
+        http_layer.cpp
     )
 
 

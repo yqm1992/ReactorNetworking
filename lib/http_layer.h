@@ -28,9 +28,6 @@ private:
     int ProcessStatusLine(const char *start, const char *end);
     int ParseHttpRequest();
 
-    // std::shared_ptr<HttpRequest> http_request_;
-    // std::shared_ptr<HttpResponse> http_response_;
-
     HttpRequest http_request_;
     HttpResponse http_response_;
 };
@@ -58,16 +55,21 @@ private:
 
 class HttpServer {
 public:
-    HttpServer(int thread_num) {
-        tcp_server_ = std::make_shared<TcpServer>(thread_num);
+    HttpServer(int thread_num, int listen_port): thread_num_(thread_num), listen_port_(listen_port) {}
+    
+    bool Start() {
+        auto acceptor_channel = HttpAcceptor::MakeHttpAcceptorChannel(listen_port_);
+        if (acceptor_channel == nullptr) {
+            return false;
+        }
+        tcp_server_ = std::make_shared<TcpServer>(thread_num_);
+        tcp_server_->Start(acceptor_channel);
+        return true;
     }
 
-    ~HttpServer() {}
-
-    void Start(std::shared_ptr<Channel> acceptor_channel) { tcp_server_->Start(acceptor_channel); }
-    
 private:
-
+    int thread_num_;
+    int listen_port_;
     std::shared_ptr<TcpServer> tcp_server_;
 };
 

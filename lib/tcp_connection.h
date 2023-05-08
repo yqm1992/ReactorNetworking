@@ -35,10 +35,6 @@ public:
         Set(connected_fd, CHANNEL_EVENT_READ, static_cast<void *>(event_loop), "connection");
         input_buffer_ = std::make_shared<Buffer>();
         output_buffer_ = std::make_shared<Buffer>();
-
-        // char *buf = malloc(16);
-        // sprintf(buf, "connection-%d\0", connected_fd);
-        // tcpConnection->name = buf;
     }
 
     ~TcpConnection() {}

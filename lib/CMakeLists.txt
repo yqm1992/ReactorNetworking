@@ -1,13 +1,13 @@
 #if (EPOLL_EXISTS)
-#    set(yolanda_lib
+#    set(networking_lib
 #            channel.cpp
 #            )
 #else ()
-#    set(yolanda_lib
+#    set(networking_lib
 #            channel.cpp
 #            )
 #endif ()
-set(yolanda_lib
+set(networking_lib
         channel.cpp
         buffer.cpp
         log.cpp
@@ -24,10 +24,10 @@ set(yolanda_lib
     )
 
 
-add_library(yolanda ${yolanda_lib})
-target_link_libraries(yolanda pthread rt)
+add_library(networking ${networking_lib})
+target_link_libraries(networking pthread rt)
 
-install(TARGETS yolanda DESTINATION lib)
+install(TARGETS networking DESTINATION lib)
 
 #file(GLOB HEADERS "*.h")
 #install(FILES ${HEADERS} DESTINATION include/)

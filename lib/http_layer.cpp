@@ -61,7 +61,7 @@ int HttpLayer::OnHttpRequest(const HttpRequest& http_request, HttpResponse* http
 // 注意这里可能没有收到全部数据，所以要处理数据不够的情形
 int HttpLayer::MessageCallBack() {
     yolanda_msgx("get message from %s", connection_->GetDescription().c_str());
-    std::cout << connection_->GetInputBuffer()->ReadStart() << std::endl;
+    // std::cout << connection_->GetInputBuffer()->ReadStart() << std::endl;
 
     if (ParseHttpRequest() == 0) {
         const char *error_response = "HTTP/1.1 400 Bad Request\r\n\r\n";
@@ -71,6 +71,7 @@ int HttpLayer::MessageCallBack() {
 
     //处理完了所有的request数据，接下来进行编码和发送
     if (http_request_.CurrentState() == REQUEST_DONE) {
+        http_request_.Display();
         OnHttpRequest(http_request_, &http_response_);
         Buffer buffer;
         http_response_.EncodeBuffer(&buffer);

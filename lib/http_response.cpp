@@ -17,9 +17,11 @@ void HttpResponse::EncodeBuffer(Buffer *output) {
     if (keep_connected_) {
         output->AppendString("Connection: close\r\n");
     } else {
-        snprintf(buf, sizeof buf, "Content-Length: %zd\r\n", strlen(body_.c_str()));
-        output->AppendString(buf);
         output->AppendString("Connection: Keep-Alive\r\n");
+        snprintf(buf, sizeof(buf), "Content-Length: %zd\r\n", strlen(body_.c_str()));
+        output->AppendString(buf);
+        snprintf(buf, sizeof(buf), "Content-Type: %s\r\n", content_type_.c_str());
+        output->AppendString(buf);
     }
 
     for (auto& header: response_headers_) {
@@ -46,9 +48,11 @@ void HttpResponse::Display() {
     if (keep_connected_) {
         std::cout << "Connection: close" << line_end;
     } else {
+        std::cout << "Connection: Keep-Alive" << line_end;
+        snprintf(buf, sizeof(buf), "Content-Type: %s\r\n", content_type_.c_str());
+        std::cout << buf;
         snprintf(buf, sizeof buf, "Content-Length: %zd\\r\\n\n", strlen(body_.c_str()));
         std::cout << buf;
-        std::cout << "Connection: Keep-Alive" << line_end;
     }
 
     for (auto& header: response_headers_) {

@@ -43,6 +43,8 @@ public:
     //根据request请求判断是否需要关闭服务器-->客户端单向连接
     int CloseConnection();
 
+    void Display();
+
 private:
     std::string version_;
     std::string method_;

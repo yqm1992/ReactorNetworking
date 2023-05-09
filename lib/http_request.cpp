@@ -1,5 +1,6 @@
 #include "http_request.h"
 #include "common.h"
+#include <iostream>
 
 #define INIT_REQUEST_HEADER_SIZE 128
 
@@ -54,5 +55,24 @@ int HttpRequest::CloseConnection() {
     return 0;
 }
 
+void HttpRequest::Display() {
+    std::string line_end = "\\r\\n\n";
+    std::cout << "---------------- request start ----------------" << std::endl;
+    char buf[32];
+
+    snprintf(buf, sizeof(buf), "%s %s %s", method_.c_str(), url_.c_str(), version_.c_str());
+    std::cout << buf;
+    std::cout << line_end;
+
+    for (auto& header: request_headers_) {
+        std::cout << header.key.c_str();
+        std::cout << ": ";
+        std::cout << header.value.c_str();
+        std::cout << line_end;
+    }
+
+    std::cout << line_end;
+    std::cout << "---------------- request end ----------------" << std::endl;
+}
 
 }

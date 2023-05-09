@@ -38,7 +38,11 @@ public:
 
     static std::shared_ptr<Channel> MakeHttpAcceptorChannel(int listen_port) {
         auto acceptor = new HttpAcceptor(listen_port);
-        acceptor->Init();
+        if (!acceptor->Init()) {
+            yolanda_msgx("failed to init acceptor");
+            delete acceptor;
+            return nullptr;
+        }
         std::shared_ptr<Channel> channel;
         channel.reset(static_cast<Channel*>(acceptor));
         return channel;
@@ -56,7 +60,7 @@ private:
 class HttpServer {
 public:
     HttpServer(int thread_num, int listen_port): thread_num_(thread_num), listen_port_(listen_port) {}
-    
+
     bool Start() {
         auto acceptor_channel = HttpAcceptor::MakeHttpAcceptorChannel(listen_port_);
         if (acceptor_channel == nullptr) {

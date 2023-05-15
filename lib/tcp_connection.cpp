@@ -4,12 +4,39 @@
 namespace networking {
 // TODO: 想一下TcpConnection的生命周期是怎样的
 
+std::shared_ptr<Channel> TcpConnection::MakeTcpConnectionChannel(int connected_fd, std::shared_ptr<TcpApplication> tcp_application) {
+    // 新建tcp_connction
+    TcpConnection* tcp_connection = new TcpConnection(connected_fd);
+    // 用tcp_application初始化tcp_connection
+    tcp_connection->Init(tcp_application);
+
+    std::shared_ptr<Channel> tcp_connection_channel;
+    tcp_connection_channel.reset(static_cast<Channel*>(tcp_connection));
+
+    return tcp_connection_channel;
+}
+
+void TcpConnection::FocusWriteEvent() {
+    if (!WriteEventIsEnabled()) {
+        EnableWriteEvent();
+        GetEventLoop()->UpdateChannelEvent(fd_);
+    }
+}
+
+void TcpConnection::CancelFocusWriteEvent() {
+    if (WriteEventIsEnabled()) {
+        DisableWriteEvent();
+        GetEventLoop()->UpdateChannelEvent(fd_);
+    }
+}
+
 // 从socket读取数据，写入buffer
 int TcpConnection::EventReadCallback() {
     if (input_buffer_->SocketRead(fd_) > 0) {
         //应用程序真正读取Buffer里的数据
         application_->MessageCallBack();
     } else {
+		// 后续的read都会返回0
         HandleConnectionClosed();
     }
     return 0;
@@ -31,8 +58,7 @@ int TcpConnection::EventWriteCallback() {
     if (writed_socket_size > 0) {
         //如果数据完全发送出去，就不需要继续了
         if (output_buffer_->ReadableSize() == 0) {
-            DisableWriteEvent();
-            GetEventLoop()->UpdateChannelEvent(fd_);
+            CancelFocusWriteEvent();
         }
         //回调WriteCompletedCallBack
         application_->WriteCompletedCallBack();
@@ -67,10 +93,7 @@ int TcpConnection::SendData(const char *data, int size) {
     if (!fault && left_size > 0) {
         //拷贝到Buffer中，Buffer的数据由框架接管
         output_buffer_->Append(data + writed_socket_size, left_size);
-        if (!WriteEventIsEnabled()) {
-            EnableWriteEvent();
-            GetEventLoop()->UpdateChannelEvent(fd_);
-        }
+        FocusWriteEvent();
     }
 
     return writed_socket_size;

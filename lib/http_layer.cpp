@@ -10,13 +10,13 @@ namespace networking {
 // HttpLayerFactory HttpServer::HTTP_LAYER_FACTORY;
 
 int HttpLayer::ConnectionCompletedCallBack() {
-    yolanda_msgx("connection completed");
+    yolanda_msgx("connection completed (HTTP)");
     // http_request_ = std::make_shared<HttpRequest>();
     return 0;
 }
 
 int HttpLayer::ConnectionClosedCallBack() {
-    yolanda_msgx("ConnectionClosedCallBack");
+    yolanda_msgx("ConnectionClosedCallBack (HTTP)");
     return 0;
 }
 

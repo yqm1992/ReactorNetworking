@@ -17,6 +17,8 @@ enum CHANNEL_EVENT: int {
     CHANNEL_EVENT_SIGNAL = 0x08
 };
 
+class EventLoop;
+
 class Channel {
 public:
     friend class Dispatcher;
@@ -27,6 +29,11 @@ public:
     virtual ~Channel() {}
 
     int GetFD() const { return fd_; }
+
+    // EventLoop::AddChannel的时候调用
+    void SetEventLoop(EventLoop* event_loop) { event_loop_ = event_loop; }
+
+    EventLoop* GetEventLoop() { return event_loop_;}
 
     bool WriteEventIsEnabled() { return events_ & CHANNEL_EVENT_WRITE; }
 
@@ -41,7 +48,9 @@ public:
         return std::move(ret);
     }
 
-    virtual int Close() { return 0; };
+    // virtual int Close() { return 0; };
+
+    virtual int Close() = 0;
 
     virtual int EventReadCallback() { return 0; } 
 
@@ -59,11 +68,13 @@ public:
     }
 
 protected:
-    void Set(int fd, int events, void* data, const std::string& type) { fd_ = fd; events_ = events; data_= data; type_ = type; }
+    // void Set(int fd, int events, void* data, const std::string& type) { fd_ = fd; events_ = events; data_= data; type_ = type; }
+    void Set(int fd, int events, const std::string& type) { fd_ = fd; events_ = events; type_ = type; }
 
 	int fd_ = -1;
 	int events_ = 0;   // 表示event类型
-    void *data_ = nullptr; //callback data, 可能是event_loop，也可能是tcp_server或者tcp_connection
+    EventLoop* event_loop_ = nullptr;
+    // void *data_ = nullptr; //callback data, 可能是event_loop，也可能是tcp_server或者tcp_connection
     std::string type_;
 };
 

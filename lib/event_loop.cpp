@@ -9,11 +9,9 @@
 
 namespace networking {
 
-void WakeupChannel::Init(EventLoop* event_loop, int fd) {
-    event_loop_ = event_loop;
-    Set(fd, CHANNEL_EVENT_READ, nullptr, "wakeup_fd");
+void WakeupChannel::Init(int fd) {
+    Set(fd, CHANNEL_EVENT_READ, "wakeup_fd");
 }
-
 
 int WakeupChannel::EventReadCallback() {
     char one;
@@ -42,7 +40,7 @@ bool EventLoop::Init() {
     }
     
     WakeupChannel* wakeup_channel = new WakeupChannel();
-    wakeup_channel->Init(this, socket_pair_[1]);
+    wakeup_channel->Init(socket_pair_[1]);
     wakeup_channel_.reset(static_cast<Channel*>(wakeup_channel));
     AddChannel(wakeup_channel_);
 }

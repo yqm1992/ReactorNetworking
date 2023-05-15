@@ -13,7 +13,7 @@ namespace networking {
 
 class HttpLayer: public TcpApplication {
 public:
-    HttpLayer(TcpConnection* connection): TcpApplication(connection, "http_layer") {}
+    HttpLayer(): TcpApplication("http_layer") {}
 
     ~HttpLayer() {std::cout << "~HttpLayer()" << std::endl;}
 
@@ -49,8 +49,8 @@ public:
     }
     
 private:
-    virtual std::shared_ptr<TcpApplication> MakeTcpApplication(TcpConnection * connection) override { 
-        auto http_layer = new HttpLayer(connection);
+    virtual std::shared_ptr<TcpApplication> MakeTcpApplication() override { 
+        auto http_layer = new HttpLayer();
         std::shared_ptr<TcpApplication> tcp_application;
         tcp_application.reset(static_cast<TcpApplication*>(http_layer));
         return tcp_application; 

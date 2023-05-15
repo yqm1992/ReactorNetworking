@@ -12,7 +12,15 @@ class TcpConnection;
 
 class TcpApplication {
 public:
-    TcpApplication(TcpConnection* connection, const std::string& name): connection_(connection), name_(name) {}
+    TcpApplication(const std::string& name): name_(name) {}
+
+    TcpApplication(const std::string& name, TcpConnection* connection): name_(name) {
+        SetTcpConnection(connection);
+    }
+
+    void SetTcpConnection(TcpConnection* connection) {
+        connection_ = connection;
+    }
 
     virtual ~TcpApplication() {}
 
@@ -31,15 +39,18 @@ public:
     friend class Acceptor;
     friend class TcpApplication;
 
-    TcpConnection(int connected_fd, EventLoop *event_loop) {
-        Set(connected_fd, CHANNEL_EVENT_READ, static_cast<void *>(event_loop), "connection");
+    TcpConnection(int connected_fd) {
+        Set(connected_fd, CHANNEL_EVENT_READ, "connection");
         input_buffer_ = std::make_shared<Buffer>();
         output_buffer_ = std::make_shared<Buffer>();
     }
 
-    ~TcpConnection() {}
+    ~TcpConnection() { Close(); }
+
+    static std::shared_ptr<Channel> MakeTcpConnectionChannel(int connected_fd, std::shared_ptr<TcpApplication> tcp_application);
 
     void Init(std::shared_ptr<TcpApplication> application) {
+        application->SetTcpConnection(this);
         application_ = application;
         application_->ConnectionCompletedCallBack();
     }
@@ -59,7 +70,10 @@ public:
     Buffer* GetInputBuffer() { return input_buffer_.get(); }
 
 private:
-    EventLoop* GetEventLoop() { return static_cast<EventLoop*>(data_); }
+
+    void FocusWriteEvent();
+
+    void CancelFocusWriteEvent();
 
     std::string name_;
     std::shared_ptr<Buffer> input_buffer_;   //接收缓冲区

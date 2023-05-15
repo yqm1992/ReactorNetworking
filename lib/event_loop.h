@@ -1,6 +1,7 @@
 #pragma once
 
 #include <pthread.h>
+#include <assert.h>
 #include "channel.h"
 #include "dispatcher.h"
 #include "sync_cond.h"
@@ -25,16 +26,13 @@ class EventLoop;
 
 class WakeupChannel: public Channel {
 public:
-    void Init(EventLoop* event_loop, int fd);
+    void Init(int fd);
 
     virtual int Close() override {
         return close(fd_);
     }
     
     virtual int EventReadCallback() override;
-    
-private:
-    EventLoop* event_loop_;
 };
 
 class EventLoop {
@@ -46,6 +44,8 @@ public:
     int Run();
 
     int AddChannel(std::shared_ptr<Channel> channel) {
+        assert(channel->GetEventLoop() == nullptr);
+        channel->SetEventLoop(this);
         return AdminChannel(channel, ADMIN_CHANNEL_ADD);
     }
 

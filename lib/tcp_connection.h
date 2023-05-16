@@ -65,6 +65,7 @@ public:
     int HandleConnectionClosed();
 
     int SendData(const char *data, int size);
+    int SendData(const std::string& data);
     int SendBuffer(const Buffer& buffer);
     void Shutdown();
     Buffer* GetInputBuffer() { return input_buffer_.get(); }

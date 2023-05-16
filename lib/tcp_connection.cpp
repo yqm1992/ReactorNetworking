@@ -99,6 +99,10 @@ int TcpConnection::SendData(const char *data, int size) {
     return writed_socket_size;
 }
 
+int TcpConnection::SendData(const std::string& data) {
+    return SendData(data.c_str(), data.size());
+}
+
 // 不会改变buffer
 int TcpConnection::SendBuffer(const Buffer& buffer) {
     return SendData(buffer.ReadStart(), buffer.ReadableSize());

@@ -44,6 +44,9 @@ public:
     int Run();
 
     int AddChannel(std::shared_ptr<Channel> channel) {
+        if (channel == nullptr) {
+            return 0;
+        }
         assert(channel->GetEventLoop() == nullptr);
         channel->SetEventLoop(this);
         return AdminChannel(channel, ADMIN_CHANNEL_ADD);

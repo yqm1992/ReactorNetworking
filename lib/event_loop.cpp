@@ -9,6 +9,8 @@
 
 namespace networking {
 
+// TODO: channel 关闭，删除过程中出现错误了怎么妥善处理比较好？
+
 void WakeupChannel::Init(int fd) {
     Set(fd, CHANNEL_EVENT_READ, "wakeup_fd");
 }

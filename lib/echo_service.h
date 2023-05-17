@@ -79,6 +79,7 @@ public:
 
     virtual int ConnectionCompletedCallBack() override {
         connection_->SendData("welcome!");
+        return 0;
     }
 
     virtual int ConnectionClosedCallBack() override { return 0; }

@@ -8,8 +8,13 @@ int main() {
 
     HttpServer http_server(thread_num, listen_port);
     http_server.Start();
+
+    std::string str;
     while (true) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        std::cin >> str;
+        if (str == "exit") {
+            break;
+        }
     }
 
     return 0;

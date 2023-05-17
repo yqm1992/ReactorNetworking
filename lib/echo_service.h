@@ -1,3 +1,5 @@
+#pragma once
+
 #include <iostream>
 
 #include "tcp_client.h"
@@ -9,7 +11,13 @@ class EchoClientLayer: public networking::TcpApplication {
 public:
     EchoClientLayer(): TcpApplication("echo_client_layer") {}
 
-    ~EchoClientLayer() { std::cout << "~EchoClientLayer" << std::endl;}
+    ~EchoClientLayer() { std::cout << "~EchoClientLayer" << std::endl; }
+
+    static std::string GetInput() {
+        std::string str;
+        std::cin >> str;
+        return str;
+    }
 
     static std::shared_ptr<TcpApplication> MakeTcpApplication() {
         auto echo_client_layer = new EchoClientLayer();
@@ -18,29 +26,41 @@ public:
         return tcp_application; 
     }
 
-    virtual int ConnectionCompletedCallBack() override {
-        std::string str;
-        std::cin >> str;
-        return connection_->SendData(str.c_str(), str.size());
-    }
+    void Wait() { sync_cond_.Wait(); }
 
-    virtual int ConnectionClosedCallBack() override { return 0; }
+    virtual int ConnectionCompletedCallBack() override { return 0;}
+
+    virtual int ConnectionClosedCallBack() override {
+        std::cout << "EchoClientLayer::ConnectionClosedCallBack" << std::endl;
+        sync_cond_.Notify();
+        return 0;
+    }
 
     virtual int MessageCallBack() override {
         auto buffer = connection_->GetInputBuffer();
         std::cout << buffer->ReadStart() << std::endl;
         buffer->DiscardReadableData(buffer->ReadableSize());
-        std::string str;
-        std::cin >> str;
-        connection_->SendData(str.c_str(), str.size());
+        std::string str = GetInput();
+        if (str == "exit") {
+            connection_->MarkRecycle();
+            return 0;
+        }
+        return connection_->SendData(str.c_str(), str.size());
     }
     virtual int WriteCompletedCallBack() override { return 0; }
+
+private:
+    SyncCond sync_cond_;
 };
 
 class EchoClient: public TcpClient {
 public:
-    EchoClient(const std::string& server_addr, int port): 
-        TcpClient(server_addr, port, EchoClientLayer::MakeTcpApplication()) {}
+    EchoClient(const std::string& server_addr, int port): TcpClient(server_addr, port, EchoClientLayer::MakeTcpApplication()) {}
+
+    void WaitExit() {
+        auto tcp_application = GetTcpApplication();
+        static_cast<EchoClientLayer*>(tcp_application.get())->Wait();
+    }
 };
 
 
@@ -57,7 +77,9 @@ public:
         return tcp_application; 
     }
 
-    virtual int ConnectionCompletedCallBack() override { return 0; }
+    virtual int ConnectionCompletedCallBack() override {
+        connection_->SendData("welcome!");
+    }
 
     virtual int ConnectionClosedCallBack() override { return 0; }
 

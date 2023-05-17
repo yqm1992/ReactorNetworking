@@ -11,7 +11,8 @@ void EpollDispatcher::Clear() {
 }
 
 struct epoll_event EpollDispatcher::GetEpollEvent(const Channel& channel) {
-    struct epoll_event event;
+    epoll_event event = InitialEpollEvent();
+
     event.data.fd = channel.GetFD();
 
     if (channel.events_ & CHANNEL_EVENT_READ) {
@@ -35,6 +36,14 @@ int EpollDispatcher::GetChannelEvents(int epoll_events) {
     if (epoll_events & EPOLLOUT) {
         channel_events |= CHANNEL_EVENT_WRITE;
     }
+
+    // if (epoll_events & EPOLLWRNORM) {
+    //     channel_events |= CHANNEL_EVENT_WRITE;
+    // }
+
+    // if (epoll_events & EPOLLWRBAND) {
+    //     channel_events |= 0;
+    // }
     return channel_events;
 }
 
@@ -95,6 +104,9 @@ bool EpollDispatcher::Dispatch(struct timeval *timeval) {
         }
 
         int channel_events = GetChannelEvents(cur_event.events);
+        if (channel_events == 0) {
+            yolanda_msgx("%d receive epoll_events: %d", cur_event.data.fd, cur_event.events);
+        }
         event_loop_->ChannelEventActivate(cur_event.data.fd, channel_events);
     }
 

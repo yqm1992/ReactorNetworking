@@ -35,6 +35,10 @@ public:
 
     EventLoop* GetEventLoop() { return event_loop_;}
 
+    bool NeedRecycle() { return need_recycle_; }
+
+    bool MarkRecycle() { need_recycle_ = true; }
+
     bool WriteEventIsEnabled() { return events_ & CHANNEL_EVENT_WRITE; }
 
     bool ReadEventIsEnabled() { return events_ & CHANNEL_EVENT_READ; }
@@ -76,6 +80,7 @@ protected:
     EventLoop* event_loop_ = nullptr;
     // void *data_ = nullptr; //callback data, 可能是event_loop，也可能是tcp_server或者tcp_connection
     std::string type_;
+    bool need_recycle_ = false;
 };
 
 }

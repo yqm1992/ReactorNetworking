@@ -8,6 +8,9 @@ int main() {
 
     HttpServer http_server(thread_num, listen_port);
     http_server.Start();
+    while (true) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    }
 
     return 0;
 }

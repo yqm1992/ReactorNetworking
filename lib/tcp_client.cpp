@@ -7,16 +7,21 @@ TcpClient::TcpClient(const std::string& server_address, int port, std::shared_pt
     server_address_ = server_address;
     port_ = port;
     tcp_application_ = tcp_application;
-    loop_thread_ = std::make_shared<networking::EventLoopThread>("Main-Loop");
-    loop_thread_->Start();
 }
 
 bool TcpClient::Connect() {
-    if (channel_ == nullptr) {
-        channel_ = MakeTcpConnectionChannel(server_address_, port_, tcp_application_);
-        loop_thread_->GetEventLoop()->AddChannel(channel_);
+    if (loop_thread_ != nullptr) {
+        return true;
     }
-    return channel_ != nullptr;
+    auto channel = MakeTcpConnectionChannel(server_address_, port_, tcp_application_);
+    if (channel == nullptr) {
+        return false;
+    }
+    loop_thread_ = std::make_shared<networking::EventLoopThread>("Main-Loop");
+    loop_thread_->Start();
+    loop_thread_->GetEventLoop()->AddChannel(channel);
+    return true;
+    
 }
 
 std::shared_ptr<Channel> TcpClient::MakeTcpConnectionChannel(const std::string& server_address, int port, std::shared_ptr<TcpApplication> tcp_application) {

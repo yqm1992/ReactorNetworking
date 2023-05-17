@@ -2,6 +2,9 @@
 
 int main() {
     networking::EchoClient client("127.0.0.1", 43211);
-    client.Connect();
+    if (!client.Connect()) {
+        return 0;
+    }
+    client.WaitExit();
     return 0;
 }

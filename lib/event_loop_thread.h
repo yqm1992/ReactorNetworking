@@ -16,18 +16,21 @@ public:
 
     EventLoopThread(std::shared_ptr<EventLoop> event_loop);
 
-    ~EventLoopThread() {
-        if (work_thread_) {
-            work_thread_->join();
-            delete work_thread_;
-            work_thread_ = nullptr;
-        }
-    }
+    ~EventLoopThread() { Stop(); }
 
     std::shared_ptr<EventLoop> GetEventLoop() { return event_loop_; }
 
     // 由主线程调用，初始化一个子线程，并且让子线程开始运行event_loop
     void Start();
+
+    void Stop() {
+        if (work_thread_) {
+            event_loop_->Stop();
+            work_thread_->join();
+            delete work_thread_;
+            work_thread_ = nullptr;
+        }
+    }
 
 private:
 

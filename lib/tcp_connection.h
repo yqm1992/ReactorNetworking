@@ -56,6 +56,8 @@ public:
     }
 
     virtual int Close() override {
+        // 执行Close前的回调函数
+        HandleConnectionClosed();
         return close(fd_);
     }
 
@@ -81,6 +83,7 @@ private:
     std::shared_ptr<Buffer> output_buffer_;  //发送缓冲区
 
     std::shared_ptr<TcpApplication> application_;  // Tcp上层应用，比如Http
+    bool closed_callback_executed_ = false;
 };
 
 }

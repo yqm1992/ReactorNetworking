@@ -2,6 +2,7 @@
 
 #include <pthread.h>
 #include <assert.h>
+#include <atomic>
 #include "channel.h"
 #include "dispatcher.h"
 #include "sync_cond.h"
@@ -39,6 +40,8 @@ class EventLoop {
 public:
     EventLoop(const std::string& name);
 
+    ~EventLoop() { Stop(); }
+
     bool Init();
 
     int Run();
@@ -47,8 +50,6 @@ public:
         if (channel == nullptr) {
             return 0;
         }
-        assert(channel->GetEventLoop() == nullptr);
-        channel->SetEventLoop(this);
         return AdminChannel(channel, ADMIN_CHANNEL_ADD);
     }
 
@@ -68,6 +69,10 @@ public:
         return AdminChannel(channel, ADMIN_CHANNEL_UPDATE);
     }
 
+    void Stop() {
+        work_ = false;
+        Wakeup();
+    }
 
     void Wakeup();
 
@@ -105,7 +110,7 @@ private:
     int is_handle_pending_;
 	std::list<ChannelElement> pending_channels_;
     std::list<ChannelElement> error_channels_; // 存放有问题的channel
-    int quit_;
+    std::atomic_bool work_;
 
 };
 

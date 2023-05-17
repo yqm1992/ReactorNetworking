@@ -21,6 +21,17 @@ public:
         dispatcher.reset(static_cast<Dispatcher*>( new EpollDispatcher("epoll") ));
         return dispatcher;
     }
+
+    static void ResetEpollEvent(epoll_event* event) {
+        event->data.fd = -1;
+        event->events = 0;
+    }
+
+    static epoll_event InitialEpollEvent() {
+        epoll_event event;
+        ResetEpollEvent(&event);
+        return event;
+    }
     
     virtual bool Init(void* data) override;
 

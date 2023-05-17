@@ -12,6 +12,8 @@ public:
 
     bool Connect();
 
+    std::shared_ptr<TcpApplication> GetTcpApplication() { return tcp_application_; }
+
     static std::shared_ptr<Channel> MakeTcpConnectionChannel(const std::string& server_address, int port, std::shared_ptr<TcpApplication> tcp_application);
 
 protected:
@@ -19,7 +21,6 @@ protected:
     std::shared_ptr<TcpApplication> tcp_application_;
     std::string server_address_;
     int port_;
-    std::shared_ptr<Channel> channel_;
 };
 
 }

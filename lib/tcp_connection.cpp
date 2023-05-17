@@ -37,15 +37,20 @@ int TcpConnection::EventReadCallback() {
         application_->MessageCallBack();
     } else {
 		// 后续的read都会返回0
-        HandleConnectionClosed();
+        // 通知EventLoop删除该channel，在删除该连接之前会执行HandleConnectionClosed()
+        MarkRecycle();
     }
     return 0;
 }
 
 // EventReadCallback中调用，处理connection关闭的情况
 int TcpConnection::HandleConnectionClosed() {
+    if (closed_callback_executed_) {
+        return 0;
+    }
     application_->ConnectionClosedCallBack();
-    GetEventLoop()->RemoveChannel(fd_);
+    closed_callback_executed_ = true;
+    return 0;
     // Shutdown();
 }
 

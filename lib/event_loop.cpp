@@ -23,7 +23,7 @@ int WakeupChannel::EventReadCallback() {
     return 0;
 }
 
-EventLoop::EventLoop(const std::string& name): quit_(0), is_handle_pending_(0), name_(name) {}
+EventLoop::EventLoop(const std::string& name): work_(true), is_handle_pending_(0), name_(name) {}
 
 bool EventLoop::Init() {
     owner_thread_id_ = pthread_self();
@@ -130,7 +130,8 @@ int EventLoop::HandlePendingAdd(std::shared_ptr<Channel> channel) {
     if (found_channel != nullptr) {
         return 0;
     }
-
+    assert(channel->GetEventLoop() == nullptr);
+    channel->SetEventLoop(this);
     //add channel
     event_dispatcher_->Add(*channel);
     channel_map_.emplace(fd, channel);
@@ -143,6 +144,7 @@ int EventLoop::HandlePendingRemove(int fd) {
     if (found_channel == nullptr) {
         return -1;
     }
+    assert(found_channel->GetEventLoop() == this);
 
     yolanda_msgx("remove channel %s, %s", found_channel->GetDescription().c_str(), name_.c_str());
 
@@ -167,6 +169,7 @@ int EventLoop::HandlePendingUpdate(int fd) {
     if (found_channel == nullptr) {
         return -1;
     }
+    assert(found_channel->GetEventLoop() == this);
     yolanda_msgx("update channel %s, %s", found_channel->GetDescription().c_str(), name_.c_str());
 
     //update channel
@@ -191,6 +194,10 @@ int EventLoop::ChannelEventActivate(int fd, int channel_revents) {
         found_channel->EventWriteCallback();
     }
 
+    if (found_channel->NeedRecycle()) {
+        RemoveChannel(found_channel->GetFD());
+    }
+
     return 0;
 
 }
@@ -198,7 +205,7 @@ int EventLoop::ChannelEventActivate(int fd, int channel_revents) {
 void EventLoop::Wakeup() {
     char one = 'a';
     ssize_t n = write(socket_pair_[0], &one, sizeof one);
-    if (n != sizeof one) {
+    if (n != sizeof(one)) {
         LOG_ERR("Wakeup event loop thread failed");
     }
 }
@@ -215,7 +222,7 @@ int EventLoop::Run() {
     struct timeval timeval;
     timeval.tv_sec = 1;
 
-    while (!quit_) {
+    while (work_) {
         //block here to wait I/O event, and get active channels
         event_dispatcher_->Dispatch(&timeval);
 

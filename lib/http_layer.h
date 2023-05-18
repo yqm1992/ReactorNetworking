@@ -21,6 +21,9 @@ public:
     int ConnectionClosedCallBack() override;
     int MessageCallBack() override;
     int WriteCompletedCallBack() override;
+
+    static char* FindCRLF(char* s, int size);
+
 private:
     static const char* FindPattern(const char *start, int size, const char* target, int target_size);
     static int OnHttpRequest(const HttpRequest& http_request, HttpResponse* http_response);

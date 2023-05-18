@@ -2,8 +2,6 @@
 
 namespace networking {
 
-const char *CRLF = "\r\n";
-
 void Buffer::MakeRoom(int size) {
     if (WritableSize() >= size) {
         return;
@@ -81,11 +79,6 @@ ssize_t Buffer::SocketWrite(int fd) {
 char Buffer::ReadChar() {
     char c = data_[read_index_++];
     return c;
-}
-
-char *Buffer::FindCRLF() {
-    char *crlf = (char *)memmem(data_ + read_index_, ReadableSize(), CRLF, 2);
-    return crlf;
 }
 
 }

@@ -7,7 +7,12 @@
 
 namespace networking {
 
-// HttpLayerFactory HttpServer::HTTP_LAYER_FACTORY;
+const char *CRLF = "\r\n";
+
+char* HttpLayer::FindCRLF(char* s, int size) {
+    char *crlf = (char *)memmem(s, size, CRLF, 2);
+    return crlf;
+}
 
 int HttpLayer::ConnectionCompletedCallBack() {
     yolanda_msgx("connection completed (HTTP)");
@@ -49,19 +54,12 @@ int HttpLayer::OnHttpRequest(const HttpRequest& http_request, HttpResponse* http
     return 0;
 }
 
-// int HttpLayer::MessageCallBack() {
-//     yolanda_msgx("MessageCallBack");
-//     std::cout << connection_->GetInputBuffer()->ReadStart() << std::endl;
-//     connection_->SendData("Hello world\n", 13);
-//     connection_->Shutdown();
-//     return 0;
-// }
 
 // buffer是框架构建好的，并且已经收到部分数据的情况下
 // 注意这里可能没有收到全部数据，所以要处理数据不够的情形
 int HttpLayer::MessageCallBack() {
     yolanda_msgx("get message from %s", connection_->GetDescription().c_str());
-    // std::cout << connection_->GetInputBuffer()->ReadStart() << std::endl;
+    // std::cout << connection_->GetInputBuffer()->ReadStartPos() << std::endl;
 
     if (ParseHttpRequest() == 0) {
         const char *error_response = "HTTP/1.1 400 Bad Request\r\n\r\n";
@@ -121,9 +119,10 @@ int HttpLayer::ParseHttpRequest() {
     auto& current_state = http_request_.current_state_;
     while (current_state != REQUEST_DONE) {
         if (current_state == REQUEST_STATUS) {
-            const char *crlf = input_buffer->FindCRLF();
+            // const char *crlf = input_buffer->FindCRLF();
+            const char *crlf = FindCRLF(input_buffer->ReadStartPos(), input_buffer->ReadableSize());
             if (crlf) {
-                int request_line_size = ProcessStatusLine(input_buffer->ReadStart(), crlf);
+                int request_line_size = ProcessStatusLine(input_buffer->ReadStartPos(), crlf);
                 if (request_line_size) {
                     input_buffer->DiscardReadableData(request_line_size);  // request line size
                     input_buffer->DiscardReadableData(2);  //CRLF size
@@ -131,12 +130,13 @@ int HttpLayer::ParseHttpRequest() {
                 }
             }
         } else if (current_state == REQUEST_HEADERS) {
-            const char *crlf = input_buffer->FindCRLF();
+            // const char *crlf = input_buffer->FindCRLF();
+            const char *crlf = FindCRLF(input_buffer->ReadStartPos(), input_buffer->ReadableSize());
             if (crlf) {
                 /**
                  *    <start>-------<colon>:-------<crlf>
                  */
-                const char* start = input_buffer->ReadStart();
+                const char* start = input_buffer->ReadStartPos();
                 int request_line_size = crlf - start;
                 const char *colon = FindPattern(start, request_line_size, ": ", 2);
                 if (colon != nullptr) {

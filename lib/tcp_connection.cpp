@@ -110,7 +110,7 @@ int TcpConnection::SendData(const std::string& data) {
 
 // 不会改变buffer
 int TcpConnection::SendBuffer(const Buffer& buffer) {
-    return SendData(buffer.ReadStart(), buffer.ReadableSize());
+    return SendData(buffer.ReadStartPos(), buffer.ReadableSize());
 }
 
 void TcpConnection::Shutdown() {

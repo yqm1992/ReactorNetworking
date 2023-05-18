@@ -19,21 +19,13 @@ public:
 
     ~Buffer() { delete data_; }
 
-    char* ReadStart() const { return data_ + read_index_; }
+    char* ReadStartPos() const { return data_ + read_index_; }
 
     void DiscardReadableData(int size) { read_index_ += std::min(ReadableSize(), size); }
-    
-    int WritableSize() const { return total_size_ - write_index_; }
 
     int ReadableSize() const { return write_index_ - read_index_; }
 
-    int FrontSpareSize() { return read_index_; }
-
-    void MakeRoom(int size);
-
     int Append(const char *data, int size);
-
-    int AppendChar(char data);
 
     int AppendString(const char *data);
 
@@ -41,11 +33,18 @@ public:
 
     ssize_t SocketWrite(int fd);
 
-    char ReadChar();
-    
-    char *FindCRLF();
-
 private:
+
+    int WritableSize() const { return total_size_ - write_index_; }
+
+    int AppendChar(char data);
+
+    char ReadChar();
+
+    void MakeRoom(int size);
+
+    int FrontSpareSize() { return read_index_; }
+
     char *data_;
     int read_index_;       //缓冲读取位置
     int write_index_;      //缓冲写入位置

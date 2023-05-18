@@ -38,7 +38,7 @@ public:
 
     virtual int MessageCallBack() override {
         auto buffer = connection_->GetInputBuffer();
-        std::cout << buffer->ReadStart() << std::endl;
+        std::cout << buffer->ReadStartPos() << std::endl;
         buffer->DiscardReadableData(buffer->ReadableSize());
         std::string str = GetInput();
         if (str == "exit") {
@@ -87,7 +87,7 @@ public:
     virtual int MessageCallBack() override {
         auto buffer = connection_->GetInputBuffer();
         connection_->SendData("hello: ");
-        connection_->SendData(buffer->ReadStart(), buffer->ReadableSize());
+        connection_->SendData(buffer->ReadStartPos(), buffer->ReadableSize());
         buffer->DiscardReadableData(buffer->ReadableSize());
     }
 

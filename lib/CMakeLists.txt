@@ -21,8 +21,8 @@ set(networking_lib
         http_request.cpp
         http_response.cpp
         http_layer.cpp
-        tcp_client.cpp
-        echo_service.cpp
+        # tcp_client.cpp
+        # echo_service.cpp
     )
 
 

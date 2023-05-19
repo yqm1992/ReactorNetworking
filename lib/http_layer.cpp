@@ -9,24 +9,23 @@ namespace networking {
 
 const char *CRLF = "\r\n";
 
-char* HttpLayer::FindCRLF(char* s, int size) {
+char* HttpConnection::FindCRLF(char* s, int size) {
     char *crlf = (char *)memmem(s, size, CRLF, 2);
     return crlf;
 }
 
-int HttpLayer::ConnectionCompletedCallBack() {
+int HttpConnection::ConnectionCompletedCallBack() {
     yolanda_msgx("connection completed (HTTP)");
-    // http_request_ = std::make_shared<HttpRequest>();
     return 0;
 }
 
-int HttpLayer::ConnectionClosedCallBack() {
+int HttpConnection::ConnectionClosedCallBack() {
     yolanda_msgx("ConnectionClosedCallBack (HTTP)");
     return 0;
 }
 
 //数据读到buffer之后的callback
-int HttpLayer::OnHttpRequest(const HttpRequest& http_request, HttpResponse* http_response) {
+int HttpConnection::OnHttpRequest(const HttpRequest& http_request, HttpResponse* http_response) {
     auto& url = http_request.url_;
     const char* question = FindPattern(url.c_str(), url.size(), "?", 1);
     std::string path;
@@ -54,17 +53,22 @@ int HttpLayer::OnHttpRequest(const HttpRequest& http_request, HttpResponse* http
     return 0;
 }
 
+int HttpConnection::MessageCallBack(std::shared_ptr<Buffer> message_buffer) {
+    yolanda_msgx("get message from %s", GetDescription().c_str());
+    http_buffer_.AppendBuffer(*message_buffer.get());
+    ApplicationLayerProcess();
+}
 
 // buffer是框架构建好的，并且已经收到部分数据的情况下
 // 注意这里可能没有收到全部数据，所以要处理数据不够的情形
-int HttpLayer::MessageCallBack() {
-    yolanda_msgx("get message from %s", connection_->GetDescription().c_str());
+void HttpConnection::ApplicationLayerProcess() {
+    yolanda_msgx("get message from %s", GetDescription().c_str());
     // std::cout << connection_->GetInputBuffer()->ReadStartPos() << std::endl;
 
     if (ParseHttpRequest() == 0) {
         const char *error_response = "HTTP/1.1 400 Bad Request\r\n\r\n";
-        connection_->SendData(error_response, sizeof(error_response));
-        connection_->Shutdown();
+        SendData(error_response, sizeof(error_response));
+        Shutdown();
     }
 
     //处理完了所有的request数据，接下来进行编码和发送
@@ -74,24 +78,24 @@ int HttpLayer::MessageCallBack() {
         Buffer buffer;
         http_response_.EncodeBuffer(&buffer);
         http_response_.Display();
-        connection_->SendBuffer(buffer);
+        SendBuffer(buffer);
         if (http_request_.CloseConnection()) {
-            connection_->Shutdown();
+            Shutdown();
         }
         http_request_.Reset();
     }
 }
 
-int HttpLayer::WriteCompletedCallBack() {
+int HttpConnection::WriteCompletedCallBack() {
     yolanda_msgx("WriteCompletedCallBack");
     return 0;
 }
 
-const char* HttpLayer::FindPattern(const char *start, int size, const char* target, int target_size) {
+const char* HttpConnection::FindPattern(const char *start, int size, const char* target, int target_size) {
     return static_cast<const char *>(memmem(static_cast<const void *>(start), size, static_cast<const void *>(target), target_size) );
 }
 
-int HttpLayer::ProcessStatusLine(const char *start, const char *end) {
+int HttpConnection::ProcessStatusLine(const char *start, const char *end) {
     int size = end - start;
     //method
     const char *space = FindPattern(start, end - start, " ", 1);
@@ -112,47 +116,47 @@ int HttpLayer::ProcessStatusLine(const char *start, const char *end) {
     return size;
 }
 
-int HttpLayer::ParseHttpRequest() {
-    auto input_buffer = connection_->GetInputBuffer();
-    
+int HttpConnection::ParseHttpRequest() {    
     int ok = 1;
     auto& current_state = http_request_.current_state_;
+    char* start = http_buffer_.ReadStartPos();
+    char* end = http_buffer_.ReadStartPos() + http_buffer_.ReadableSize();
+    
     while (current_state != REQUEST_DONE) {
         if (current_state == REQUEST_STATUS) {
-            // const char *crlf = input_buffer->FindCRLF();
-            const char *crlf = FindCRLF(input_buffer->ReadStartPos(), input_buffer->ReadableSize());
+            // const char *crlf = http_buffer->FindCRLF();
+            const char *crlf = FindCRLF(start, end - start);
             if (crlf) {
-                int request_line_size = ProcessStatusLine(input_buffer->ReadStartPos(), crlf);
+                int request_line_size = ProcessStatusLine(start, crlf);
                 if (request_line_size) {
-                    input_buffer->DiscardReadableData(request_line_size);  // request line size
-                    input_buffer->DiscardReadableData(2);  //CRLF size
+                    start += (request_line_size+2);
                     current_state = REQUEST_HEADERS;
                 }
             }
         } else if (current_state == REQUEST_HEADERS) {
-            // const char *crlf = input_buffer->FindCRLF();
-            const char *crlf = FindCRLF(input_buffer->ReadStartPos(), input_buffer->ReadableSize());
+            // const char *crlf = http_buffer_.FindCRLF();
+            const char *crlf = FindCRLF(start, end - start);
             if (crlf) {
                 /**
                  *    <start>-------<colon>:-------<crlf>
                  */
-                const char* start = input_buffer->ReadStartPos();
                 int request_line_size = crlf - start;
                 const char *colon = FindPattern(start, request_line_size, ": ", 2);
                 if (colon != nullptr) {
                     std::string key(start, colon - start);
                     std::string value(colon + 2, crlf - colon - 2);
                     http_request_.AddHeader(key, value);
-                    input_buffer->DiscardReadableData(request_line_size);  //request line size
-                    input_buffer->DiscardReadableData(2);  //CRLF size
+                    start += (request_line_size+2);
                 } else {
                     //读到这里说明:没找到，就说明这个是最后一行
-                    input_buffer->DiscardReadableData(2);  //CRLF size
+                    start += 2; // CRLF size
                     current_state = REQUEST_DONE;
                 }
             }
         }
     }
+    // 解析成功，丢弃掉消费的部分
+    http_buffer_.DiscardReadableData(start - http_buffer_.ReadStartPos());
     return ok;
 }
 

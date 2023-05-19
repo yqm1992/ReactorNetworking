@@ -21,6 +21,7 @@ enum HttpRequestState: int {
 class HttpRequest {
 public:
     friend class HttpLayer;
+    friend class HttpConnection;
 
     //初始化一个request对象
     HttpRequest() {}

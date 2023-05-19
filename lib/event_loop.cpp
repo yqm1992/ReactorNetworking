@@ -150,10 +150,10 @@ int EventLoop::HandlePendingRemove(int fd) {
 
     yolanda_msgx("remove channel %s, %s", found_channel->GetDescription().c_str(), name_.c_str());
 
-    // close channel
-    if (found_channel->Close() < 0) {
-        return -1;
-    }
+    //// TODO: close channel 析构函数
+    //if (found_channel->Close() < 0) {
+    //    return -1;
+    //}
     // remove from dispatcher (multi-thread) here
     if (event_dispatcher_->Del(*found_channel) < 0) {
         return -1;

@@ -11,16 +11,42 @@
 
 namespace networking {
 
-class HttpLayer: public TcpApplication {
-public:
-    HttpLayer(): TcpApplication("http_layer") {}
+// class HttpLayer: public TcpApplication {
+// public:
+//     HttpLayer(): TcpApplication("http_layer") {}
 
-    ~HttpLayer() {std::cout << "~HttpLayer()" << std::endl;}
+//     ~HttpLayer() {std::cout << "~HttpLayer()" << std::endl;}
+
+//     int ConnectionCompletedCallBack() override;
+//     int ConnectionClosedCallBack() override;
+//     int MessageCallBack() override;
+//     int WriteCompletedCallBack() override;
+
+//     static char* FindCRLF(char* s, int size);
+
+// private:
+//     static const char* FindPattern(const char *start, int size, const char* target, int target_size);
+//     static int OnHttpRequest(const HttpRequest& http_request, HttpResponse* http_response);
+
+//     int ProcessStatusLine(const char *start, const char *end);
+//     int ParseHttpRequest();
+
+//     HttpRequest http_request_;
+//     HttpResponse http_response_;
+// };
+
+class HttpConnection: public TcpConnection {
+public:
+    HttpConnection(int fd): TcpConnection(fd) {}
+
+    ~HttpConnection() { std::cout << "~HttpConnection()" << std::endl; }
 
     int ConnectionCompletedCallBack() override;
     int ConnectionClosedCallBack() override;
-    int MessageCallBack() override;
+    int MessageCallBack(std::shared_ptr<Buffer> message_buffer) override;
     int WriteCompletedCallBack() override;
+
+    void ApplicationLayerProcess() override;
 
     static char* FindCRLF(char* s, int size);
 
@@ -31,6 +57,7 @@ private:
     int ProcessStatusLine(const char *start, const char *end);
     int ParseHttpRequest();
 
+    Buffer http_buffer_;
     HttpRequest http_request_;
     HttpResponse http_response_;
 };
@@ -52,11 +79,12 @@ public:
     }
     
 private:
-    virtual std::shared_ptr<TcpApplication> MakeTcpApplication() override { 
-        auto http_layer = new HttpLayer();
-        std::shared_ptr<TcpApplication> tcp_application;
-        tcp_application.reset(static_cast<TcpApplication*>(http_layer));
-        return tcp_application; 
+
+    std::shared_ptr<Channel> MakeTcpConnectionChannel(int fd) override {
+        std::shared_ptr<Channel> channel;
+        TcpConnection* tcp_connection = static_cast<TcpConnection*>(new HttpConnection(fd));
+        channel.reset(static_cast<Channel*>(tcp_connection));
+        return channel;
     }
 };
 

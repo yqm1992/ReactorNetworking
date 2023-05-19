@@ -19,10 +19,8 @@ public:
     bool Init();
 
     void SetTcpServer(TcpServer* tcp_server) { tcp_server_ = tcp_server; }
-    
-    // virtual int EventWriteCallback() override;
 
-    virtual int EventReadCallback() override { return HandleConnectionEstablised(); } 
+    int EventReadCallback() override { return HandleConnectionEstablised(); } 
 
     // static std::shared_ptr<Channel> MakeAcceptorChannel(int listen_port);
 
@@ -30,18 +28,20 @@ public:
 
     static int GetListenFD(int listen_port);
 
-    virtual int Close() override { return close(fd_); }
+    int Close() { return close(fd_); }
 
 protected:
 
-    // TcpConnection中包含的应用类对象，在创建connection的时候调用
-    virtual std::shared_ptr<TcpApplication> MakeTcpApplication() { 
-        return std::make_shared<TcpApplication>("DefaultTcpApplication"); 
-    }
+    // // TcpConnection中包含的应用类对象，在创建connection的时候调用
+    // virtual std::shared_ptr<TcpApplication> MakeTcpApplication() { 
+    //     return std::make_shared<TcpApplication>("DefaultTcpApplication"); 
+    // }
 
     TcpServer* GetTcpServer() { return tcp_server_; }
 
     int HandleConnectionEstablised();
+
+    virtual std::shared_ptr<Channel> MakeTcpConnectionChannel(int fd) = 0;
 
     int listen_port_;
     TcpServer* tcp_server_;

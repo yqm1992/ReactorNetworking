@@ -29,7 +29,9 @@ class WakeupChannel: public Channel {
 public:
     void Init(int fd);
 
-    virtual int Close() override {
+	~WakeupChannel() { Close(); }
+	
+    int Close() {
         return close(fd_);
     }
     
@@ -82,11 +84,11 @@ public:
     // res: EVENT_READ | EVENT_READ等
     int ChannelEventActivate(int fd, int channel_revents);
 
+    bool InOwnerThread() { return owner_thread_id_ == pthread_self(); }
+
 private:
 
     std::shared_ptr<Channel> GetChannel(int fd);
-
-    bool InOwnerThread() { return owner_thread_id_ == pthread_self(); }
 
     int HandlePendingChannels(); // 处理pending队列中的ChannelElement
 

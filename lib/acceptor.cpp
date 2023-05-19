@@ -68,7 +68,7 @@ int Acceptor::HandleConnectionEstablised() {
     // close(fd_);
     
     auto io_loop = GetTcpServer()->SelectSubEventLoop();
-    auto tcp_connection_channel = TcpConnection::MakeTcpConnectionChannel(conn_fd, MakeTcpApplication());
+    auto tcp_connection_channel = MakeTcpConnectionChannel(conn_fd);
     io_loop->AddChannel(tcp_connection_channel);
     return 0;
 }

@@ -22,6 +22,7 @@ enum HttpStatusCode: int {
 class HttpResponse {
 public:
     friend class HttpLayer;
+    friend class HttpConnection;
 
     HttpResponse() {}
 

@@ -10,72 +10,72 @@ namespace networking {
 class TcpApplication;
 class TcpConnection;
 
-// worker 线程调用，处理业务包括Decoding Computing Encoding
-// 根据
-class TcpApplication {
-public:
-    friend class TcpConnection;
+// // worker 线程调用，处理业务包括Decoding Computing Encoding
+// // 根据
+// class TcpApplication {
+// public:
+//     friend class TcpConnection;
 
-    TcpApplication(const std::string& name): name_(name) {}
+//     TcpApplication(const std::string& name): name_(name) {}
 
-    TcpApplication(const std::string& name, TcpConnection* connection): name_(name) {
-        SetTcpConnection(connection);
-    }
+//     TcpApplication(const std::string& name, TcpConnection* connection): name_(name) {
+//         SetTcpConnection(connection);
+//     }
 
-    virtual ~TcpApplication() {}
+//     virtual ~TcpApplication() {}
 
-    void AppendBuffer(const Buffer& buffer) { buffer_.AppendBuffer(buffer); }
+//     void AppendBuffer(const Buffer& buffer) { buffer_.AppendBuffer(buffer); }
 
-    // 返回需要发送的数据
-    virtual std::shared_ptr<Buffer> Process();
+//     // 返回需要发送的数据
+//     virtual std::shared_ptr<Buffer> ApplicationLayerProcess() = 0;
 
-    virtual int ConnectionCompletedCallBack() { return 0; }
-    virtual int ConnectionClosedCallBack() { return 0; }
-    virtual int MessageCallBack() { return 0; }
+//     virtual int ConnectionCompletedCallBack() { return 0; }
+//     virtual int ConnectionClosedCallBack() { return 0; }
+//     virtual int MessageCallBack() { return 0; }
 
-    // 应该放在EventLoop线程中处理
-    virtual int WriteCompletedCallBack() { return 0; }
+//     // 应该放在EventLoop线程中处理
+//     virtual int WriteCompletedCallBack() { return 0; }
 
-protected:
+// protected:
 
-    void SetTcpConnection(TcpConnection* connection) {
-        connection_ = connection;
-    }
+//     void SetTcpConnection(TcpConnection* connection) {
+//         connection_ = connection;
+//     }
 
-    TcpConnection* connection_ = nullptr;
-    Buffer buffer_;
-    std::string name_;
-};
+//     TcpConnection* connection_ = nullptr;
+//     Buffer buffer_;
+//     std::string name_;
+// };
 
 class TcpConnection: public Channel {
 public:
     friend class Acceptor;
-    friend class TcpApplication;
+    // friend class TcpApplication;
 
-    TcpConnection(int connected_fd) {
-        Set(connected_fd, CHANNEL_EVENT_READ, "connection");
+    TcpConnection(int connected_fd, const std::string& name = "connection") {
+        Set(connected_fd, CHANNEL_EVENT_READ, name);
         input_buffer_ = std::make_shared<Buffer>();
         output_buffer_ = std::make_shared<Buffer>();
     }
 
-    ~TcpConnection() { Close(); }
+    virtual ~TcpConnection() { Close(); }
 
-    static std::shared_ptr<Channel> MakeTcpConnectionChannel(int connected_fd, std::shared_ptr<TcpApplication> tcp_application);
+    // static std::shared_ptr<Channel> MakeTcpConnectionChannel(int connected_fd, std::shared_ptr<TcpApplication> tcp_application);
 
-    void Init(std::shared_ptr<TcpApplication> application) {
-        application->SetTcpConnection(this);
-        application_ = application;
-        application_->ConnectionCompletedCallBack();
-    }
+    // void Init(std::shared_ptr<TcpApplication> application) {
+    //     application->SetTcpConnection(this);
+    //     application_ = application;
+    //     application_->ConnectionCompletedCallBack();
+    // }
 
-    virtual int Close() override {
+    int Close() {
         // 执行Close前的回调函数
         HandleConnectionClosed();
         return close(fd_);
     }
 
-    virtual int EventReadCallback() override;
-    virtual int EventWriteCallback() override;
+    int EventReadCallback() override;
+    int EventWriteCallback() override;
 
     int HandleConnectionClosed();
 
@@ -83,10 +83,22 @@ public:
     int SendData(const char *data, int size);
     int SendData(const std::string& data);
     int SendBuffer(const Buffer& buffer);
+    int SendBufferInLoop(std::shared_ptr<Buffer> buffer);
     void Shutdown();
     Buffer* GetInputBuffer() { return input_buffer_.get(); }
 
-private:
+    bool InLoopThread() { return event_loop_->InOwnerThread(); }
+
+    virtual int WriteCompletedCallBack() { return 0; }
+    virtual int ConnectionCompletedCallBack() { return 0; }
+    virtual int ConnectionClosedCallBack() { return 0; }
+    // 处理input_buffer_的回调函数（数据读取到了input_buffer_之后执行）
+    virtual int MessageCallBack(std::shared_ptr<Buffer> message_buffer) { return 0; }
+
+    // worker 线程调用
+    virtual void ApplicationLayerProcess() {};
+
+protected:
 
     void FocusWriteEvent();
 
@@ -96,7 +108,7 @@ private:
     std::shared_ptr<Buffer> input_buffer_;   //接收缓冲区
     std::shared_ptr<Buffer> output_buffer_;  //发送缓冲区
 
-    std::shared_ptr<TcpApplication> application_;  // Tcp上层应用，比如Http
+    // std::shared_ptr<TcpApplication> application_;  // Tcp上层应用，比如Http
     bool closed_callback_executed_ = false;
 };
 

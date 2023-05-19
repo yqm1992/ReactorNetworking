@@ -4,17 +4,17 @@
 namespace networking {
 // TODO: 想一下TcpConnection的生命周期是怎样的
 
-std::shared_ptr<Channel> TcpConnection::MakeTcpConnectionChannel(int connected_fd, std::shared_ptr<TcpApplication> tcp_application) {
-    // 新建tcp_connction
-    TcpConnection* tcp_connection = new TcpConnection(connected_fd);
-    // 用tcp_application初始化tcp_connection
-    tcp_connection->Init(tcp_application);
+// std::shared_ptr<Channel> TcpConnection::MakeTcpConnectionChannel(int connected_fd, std::shared_ptr<TcpApplication> tcp_application) {
+//     // 新建tcp_connction
+//     TcpConnection* tcp_connection = new TcpConnection(connected_fd);
+//     // 用tcp_application初始化tcp_connection
+//     tcp_connection->Init(tcp_application);
 
-    std::shared_ptr<Channel> tcp_connection_channel;
-    tcp_connection_channel.reset(static_cast<Channel*>(tcp_connection));
+//     std::shared_ptr<Channel> tcp_connection_channel;
+//     tcp_connection_channel.reset(static_cast<Channel*>(tcp_connection));
 
-    return tcp_connection_channel;
-}
+//     return tcp_connection_channel;
+// }
 
 void TcpConnection::FocusWriteEvent() {
     if (!WriteEventIsEnabled()) {
@@ -34,7 +34,9 @@ void TcpConnection::CancelFocusWriteEvent() {
 int TcpConnection::EventReadCallback() {
     if (input_buffer_->SocketRead(fd_) > 0) {
         //应用程序真正读取Buffer里的数据
-        application_->MessageCallBack();
+        std::shared_ptr<Buffer> message_buffer = input_buffer_;
+        input_buffer_ = std::make_shared<Buffer>();
+        MessageCallBack(message_buffer);
     } else {
 		// 后续的read都会返回0
         // 通知EventLoop删除该channel，在删除该连接之前会执行HandleConnectionClosed()
@@ -48,7 +50,7 @@ int TcpConnection::HandleConnectionClosed() {
     if (closed_callback_executed_) {
         return 0;
     }
-    application_->ConnectionClosedCallBack();
+    ConnectionClosedCallBack();
     closed_callback_executed_ = true;
     return 0;
     // Shutdown();
@@ -66,7 +68,7 @@ int TcpConnection::EventWriteCallback() {
             CancelFocusWriteEvent();
         }
         //回调WriteCompletedCallBack
-        application_->WriteCompletedCallBack();
+        WriteCompletedCallBack();
     } else {
         yolanda_msgx("HandleWrite for %s", GetDescription().c_str());
     }
@@ -112,6 +114,12 @@ int TcpConnection::SendData(const std::string& data) {
 int TcpConnection::SendBuffer(const Buffer& buffer) {
     return SendData(buffer.ReadStartPos(), buffer.ReadableSize());
 }
+
+// int TcpConnection::SendBufferInLoop(std::shared_ptr<Buffer> buffer) {
+//     auto func = [this, buffer](){
+//         SendData(buffer->ReadStartPos(), buffer->ReadableSize());
+//     }
+// }
 
 void TcpConnection::Shutdown() {
     if (shutdown(fd_, SHUT_WR) < 0) {

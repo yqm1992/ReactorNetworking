@@ -1,6 +1,5 @@
 #include "event_loop_thread.h"
 
-
 namespace networking {
 
 EventLoopThread::EventLoopThread(const std::string& event_loop_name) {

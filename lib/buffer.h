@@ -29,6 +29,8 @@ public:
 
     int AppendString(const char *data);
 
+    int AppendBuffer(const Buffer& buffer);
+
     int SocketRead(int fd);
 
     ssize_t SocketWrite(int fd);

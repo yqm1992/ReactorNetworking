@@ -53,7 +53,7 @@ public:
     }
 
     // virtual int Close() { return 0; };
-
+    // TODO: Close() 这个可以不用，关闭逻辑在析构的时候执行就可以
     virtual int Close() = 0;
 
     virtual int EventReadCallback() { return 0; } 

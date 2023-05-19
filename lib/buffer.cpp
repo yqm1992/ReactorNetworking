@@ -46,6 +46,10 @@ int Buffer::AppendString(const char *data) {
     }
 }
 
+int Buffer::AppendBuffer(const Buffer& buffer) {
+    Append(buffer.ReadStartPos(), buffer.ReadableSize());
+}
+
 int Buffer::SocketRead(int fd) {
     char additional_buffer[INIT_BUFFER_SIZE];
     struct iovec vec[2];

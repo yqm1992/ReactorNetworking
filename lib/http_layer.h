@@ -37,7 +37,7 @@ namespace networking {
 
 class HttpConnection: public TcpConnection {
 public:
-    HttpConnection(int fd): TcpConnection(fd) {}
+    HttpConnection(int fd, WorkThread* worker = nullptr): TcpConnection(fd, "http_connection", worker) {}
 
     ~HttpConnection() { std::cout << "~HttpConnection()" << std::endl; }
 
@@ -46,14 +46,13 @@ public:
     int MessageCallBack(std::shared_ptr<Buffer> message_buffer) override;
     int WriteCompletedCallBack() override;
 
-    void ApplicationLayerProcess() override;
-
     static char* FindCRLF(char* s, int size);
 
 private:
     static const char* FindPattern(const char *start, int size, const char* target, int target_size);
     static int OnHttpRequest(const HttpRequest& http_request, HttpResponse* http_response);
 
+    void ApplicationLayerProcess();
     int ProcessStatusLine(const char *start, const char *end);
     int ParseHttpRequest();
 
@@ -80,9 +79,9 @@ public:
     
 private:
 
-    std::shared_ptr<Channel> MakeTcpConnectionChannel(int fd) override {
+    std::shared_ptr<Channel> MakeTcpConnectionChannel(int fd, WorkThread* worker) override {
         std::shared_ptr<Channel> channel;
-        TcpConnection* tcp_connection = static_cast<TcpConnection*>(new HttpConnection(fd));
+        TcpConnection* tcp_connection = static_cast<TcpConnection*>(new HttpConnection(fd, worker));
         channel.reset(static_cast<Channel*>(tcp_connection));
         return channel;
     }
@@ -90,20 +89,21 @@ private:
 
 class HttpServer {
 public:
-    HttpServer(int thread_num, int listen_port): thread_num_(thread_num), listen_port_(listen_port) {}
+    HttpServer(int thread_num, int worker_num, int listen_port): loop_num_(thread_num), worker_num_(worker_num), listen_port_(listen_port) {}
 
     bool Start() {
         auto acceptor_channel = HttpAcceptor::MakeHttpAcceptorChannel(listen_port_);
         if (acceptor_channel == nullptr) {
             return false;
         }
-        tcp_server_ = std::make_shared<TcpServer>(thread_num_);
+        tcp_server_ = std::make_shared<TcpServer>(loop_num_, worker_num_);
         tcp_server_->Start(acceptor_channel);
         return true;
     }
 
 private:
-    int thread_num_;
+    int loop_num_;
+    int worker_num_;
     int listen_port_;
     std::shared_ptr<TcpServer> tcp_server_;
 };

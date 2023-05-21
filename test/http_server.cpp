@@ -3,10 +3,11 @@
 using namespace networking;
 
 int main() {
-    int thread_num = 2;
+    int loop_num = 2;
+    int worker_num = 2;
     int listen_port = 43211;
 
-    HttpServer http_server(thread_num, listen_port);
+    HttpServer http_server(loop_num, worker_num, listen_port);
     http_server.Start();
 
     std::string str;

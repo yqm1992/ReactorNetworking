@@ -66,8 +66,9 @@ void HttpConnection::ApplicationLayerProcess() {
     // std::cout << connection_->GetInputBuffer()->ReadStartPos() << std::endl;
 
     if (ParseHttpRequest() == 0) {
-        const char *error_response = "HTTP/1.1 400 Bad Request\r\n\r\n";
-        SendData(error_response, sizeof(error_response));
+        std::shared_ptr<std::string> str;
+        *str = "HTTP/1.1 400 Bad Request\r\n\r\n";
+        SendString(str);
         Shutdown();
     }
 
@@ -75,8 +76,8 @@ void HttpConnection::ApplicationLayerProcess() {
     if (http_request_.CurrentState() == REQUEST_DONE) {
         http_request_.Display();
         OnHttpRequest(http_request_, &http_response_);
-        Buffer buffer;
-        http_response_.EncodeBuffer(&buffer);
+        auto buffer = std::make_shared<Buffer>();
+        http_response_.EncodeBuffer(buffer.get());
         http_response_.Display();
         SendBuffer(buffer);
         if (http_request_.CloseConnection()) {

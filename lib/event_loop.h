@@ -7,20 +7,11 @@
 #include "dispatcher.h"
 #include "sync_cond.h"
 #include "common.h"
+#include "worker.h"
 
 namespace networking {
 
-enum ADMIN_CHANNEL : int {
-    ADMIN_CHANNEL_ADD = 1,
-    ADMIN_CHANNEL_REMOVE = 2,
-    ADMIN_CHANNEL_UPDATE = 3
-};
-
-struct ChannelElement {
-    ChannelElement(int type, std::shared_ptr<Channel> channel): type(type), channel(channel) {}
-    int type; // 1: add  2: delete 3:update
-    std::shared_ptr<Channel> channel;
-};
+// m
 
 
 class EventLoop;
@@ -31,15 +22,15 @@ public:
 
 	~WakeupChannel() { Close(); }
 	
-    int Close() {
-        return close(fd_);
-    }
+    int Close() { return close(fd_); }
     
-    virtual int EventReadCallback() override;
+    int EventReadCallback() override;
 };
 
 class EventLoop {
 public:
+    typedef std::function<void()> Task;
+
     EventLoop(const std::string& name);
 
     ~EventLoop() { Stop(); }
@@ -48,27 +39,23 @@ public:
 
     int Run();
 
-    int AddChannel(std::shared_ptr<Channel> channel) {
-        if (channel == nullptr) {
-            return 0;
-        }
-        return AdminChannel(channel, ADMIN_CHANNEL_ADD);
+    void RunTaskInLoopThread(Task task);
+
+    void QueueInLoop(Task task);
+
+    void AddChannel(std::shared_ptr<Channel> channel) {
+        auto task = std::bind(&EventLoop::AddChannelInLoop, this, channel);
+        RunTaskInLoopThread(task);
     }
 
-    int RemoveChannel(int fd) {
-        auto channel = GetChannel(fd);
-        if (channel == nullptr) {
-            return 0;
-        }
-        return AdminChannel(channel, ADMIN_CHANNEL_REMOVE);
+    void RemoveChannel(int fd) {
+        auto task = std::bind(&EventLoop::RemoveChannelInLoop, this, fd);
+        RunTaskInLoopThread(task);
     }
 
-    int UpdateChannelEvent(int fd) {
-        auto channel = GetChannel(fd);
-        if (channel == nullptr) {
-            return 0;
-        }
-        return AdminChannel(channel, ADMIN_CHANNEL_UPDATE);
+    void UpdateChannelEvent(int fd) {
+        auto task = std::bind(&EventLoop::UpdateChannelInLoop, this, fd);
+        RunTaskInLoopThread(task);
     }
 
     void Stop() {
@@ -90,17 +77,19 @@ private:
 
     std::shared_ptr<Channel> GetChannel(int fd);
 
-    int HandlePendingChannels(); // 处理pending队列中的ChannelElement
+    void DoPendingTasksInLoop();
 
-    int HandleChannelElement(const ChannelElement& channel_element); // 处理单个ChannelElement
+    // int HandlePendingChannels(); // 处理pending队列中的ChannelElement
 
-    int HandlePendingAdd(std::shared_ptr<Channel> channel);
+    // int HandleChannelElement(const ChannelElement& channel_element); // 处理单个ChannelElement
 
-    int HandlePendingRemove(int fd);
+    void AddChannelInLoop(std::shared_ptr<Channel> channel);
 
-    int HandlePendingUpdate(int fd);
+    void RemoveChannelInLoop(int fd);
 
-    int AdminChannel(std::shared_ptr<Channel> channel, int type);
+    void UpdateChannelInLoop(int fd);
+
+    // int AdminChannel(std::shared_ptr<Channel> channel, int type);
 
     std::string name_;
     pthread_t owner_thread_id_;
@@ -110,8 +99,9 @@ private:
     std::map<int, std::shared_ptr<Channel>> channel_map_;
     std::mutex mutex_;
     int is_handle_pending_;
-	std::list<ChannelElement> pending_channels_;
-    std::list<ChannelElement> error_channels_; // 存放有问题的channel
+	// std::list<ChannelElement> pending_channels_;
+    // std::list<ChannelElement> error_channels_; // 存放有问题的channel
+    std::list<Task> task_list_;
     std::atomic_bool work_;
 
 };
@@ -127,7 +117,7 @@ private:
 //      event_loop_thread 处理
 // HandlePendingChannels
 // HandleChannelElement
-// HandlePendingAdd
+// AddChannelInLoop
 // dispatcher->Add
 
 // ------------ EventLoop线程中调用AddChannel -----------------
@@ -135,10 +125,10 @@ private:
 // AddChannel
 // AdminChannel(1)
 // HandleChannelElement
-// HandlePendingAdd
+// AddChannelInLoop
 // dispatcher->Add
 
 // AddChannel RemoveChannel UpdateChannel
 //              AdminChannel
 //              HandleChannelElement
-// HandlePendingAdd HandlePendingRemove HandlePendingUpdate
+// AddChannelInLoop RemoveChannelInLoop UpdateChannelInLoop

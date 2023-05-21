@@ -17,17 +17,13 @@ namespace networking {
 // }
 
 void TcpConnection::FocusWriteEvent() {
-    if (!WriteEventIsEnabled()) {
-        EnableWriteEvent();
-        GetEventLoop()->UpdateChannelEvent(fd_);
-    }
+    EnableWriteEvent();
+    event_loop_->UpdateChannelEvent(fd_);
 }
 
 void TcpConnection::CancelFocusWriteEvent() {
-    if (WriteEventIsEnabled()) {
-        DisableWriteEvent();
-        GetEventLoop()->UpdateChannelEvent(fd_);
-    }
+    DisableWriteEvent();
+    event_loop_->UpdateChannelEvent(fd_);
 }
 
 // 从socket读取数据，写入buffer
@@ -36,7 +32,12 @@ int TcpConnection::EventReadCallback() {
         //应用程序真正读取Buffer里的数据
         std::shared_ptr<Buffer> message_buffer = input_buffer_;
         input_buffer_ = std::make_shared<Buffer>();
-        MessageCallBack(message_buffer);
+        // 发送到worker线程去处理
+        if (worker_) {
+            worker_->Push(std::bind(&TcpConnection::MessageCallBack, this, message_buffer));
+        } else {
+            MessageCallBack(message_buffer);
+        }
     } else {
 		// 后续的read都会返回0
         // 通知EventLoop删除该channel，在删除该连接之前会执行HandleConnectionClosed()
@@ -75,7 +76,8 @@ int TcpConnection::EventWriteCallback() {
 }
 
 //应用层调用入口
-int TcpConnection::SendData(const char *data, int size) {
+void TcpConnection::SendDataInLoop(const char *data, int size) {
+    assert(InLoopThread());
     size_t writed_socket_size = 0;
     size_t left_size = size;
     bool fault = false;
@@ -103,28 +105,45 @@ int TcpConnection::SendData(const char *data, int size) {
         FocusWriteEvent();
     }
 
-    return writed_socket_size;
+    return;
 }
 
-int TcpConnection::SendData(const std::string& data) {
-    return SendData(data.c_str(), data.size());
+void TcpConnection::SendBufferInLoop(std::shared_ptr<Buffer> buffer) {
+    SendDataInLoop(buffer->ReadStartPos(), buffer->ReadableSize());
 }
 
-// 不会改变buffer
-int TcpConnection::SendBuffer(const Buffer& buffer) {
-    return SendData(buffer.ReadStartPos(), buffer.ReadableSize());
+void TcpConnection::SendStringInLoop(std::shared_ptr<std::string> str) {
+    SendDataInLoop(str->c_str(), str->size());
 }
 
-// int TcpConnection::SendBufferInLoop(std::shared_ptr<Buffer> buffer) {
-//     auto func = [this, buffer](){
-//         SendData(buffer->ReadStartPos(), buffer->ReadableSize());
-//     }
-// }
+void TcpConnection::SendString(std::shared_ptr<std::string> str) {
+    event_loop_->RunTaskInLoopThread(std::bind(&TcpConnection::SendStringInLoop, this, str));
+}
+
+void TcpConnection::SendBuffer(std::shared_ptr<Buffer> buffer) {
+    event_loop_->RunTaskInLoopThread(std::bind(&TcpConnection::SendBufferInLoop, this, buffer));
+}
 
 void TcpConnection::Shutdown() {
-    if (shutdown(fd_, SHUT_WR) < 0) {
+    event_loop_->RunTaskInLoopThread(std::bind(&TcpConnection::ShutdownInLoop, this));
+}
+
+void TcpConnection::ShutdownInLoop() {
+    assert(InLoopThread());
+    bool need_retry = false;
+    // 数据全部写入到内核缓冲之后，才允许关闭写
+    if (output_buffer_->ReadableSize() > 0) {
+        yolanda_msgx("can't ShutDown TcpConnection, output_buffer_ is not empty");
+        need_retry = true;
+    } else if (shutdown(fd_, SHUT_WR) < 0) {
         yolanda_msgx("TcpConnectionShutdown failed, socket == %d", fd_);
+        need_retry = true;
+    }
+    if (need_retry) {
+        event_loop_->QueueInLoop(std::bind(&TcpConnection::ShutdownInLoop, this));
     }
 }
+
+
 
 }

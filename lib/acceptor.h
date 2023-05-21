@@ -41,7 +41,7 @@ protected:
 
     int HandleConnectionEstablised();
 
-    virtual std::shared_ptr<Channel> MakeTcpConnectionChannel(int fd) = 0;
+    virtual std::shared_ptr<Channel> MakeTcpConnectionChannel(int fd, WorkThread* worker) = 0;
 
     int listen_port_;
     TcpServer* tcp_server_;

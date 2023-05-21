@@ -18,7 +18,7 @@ void WakeupChannel::Init(int fd) {
 int WakeupChannel::EventReadCallback() {
     char one;
     ssize_t n = read(fd_, &one, sizeof one);
-    if (n != sizeof one) {
+    if (n != sizeof(one)) {
         LOG_ERR("HandleWakeup failed");
     }
     // yolanda_msgx("read from channel %s, %s", GetDescription().c_str(), event_loop_->GetName().c_str());
@@ -34,7 +34,6 @@ bool EventLoop::Init() {
     if (!event_dispatcher_->Init(this)) {
         return false;
     }
-
     //add the socketfd to event
     if (socketpair(AF_UNIX, SOCK_STREAM, 0, socket_pair_) < 0) {
         LOG_ERR("socketpair set fialed");
@@ -47,69 +46,97 @@ bool EventLoop::Init() {
     AddChannel(wakeup_channel_);
 }
 
-int EventLoop::HandleChannelElement(const ChannelElement& channel_element) {
-    auto channel = channel_element.channel;
-    auto fd = channel->GetFD();
-    switch (channel_element.type)
-    {
-        case ADMIN_CHANNEL_ADD:
-            HandlePendingAdd(channel);
-            break;
-        case ADMIN_CHANNEL_REMOVE:
-            HandlePendingRemove(fd);
-            break;
-        case ADMIN_CHANNEL_UPDATE:
-            HandlePendingUpdate(fd);
-            break;
-        default:
-            break;
-    }
-    return 0;
-}
+// int EventLoop::HandleChannelElement(const ChannelElement& channel_element) {
+//     auto channel = channel_element.channel;
+//     auto fd = channel->GetFD();
+//     switch (channel_element.type)
+//     {
+//         case ADMIN_CHANNEL_ADD:
+//             AddChannelInLoop(channel);
+//             break;
+//         case ADMIN_CHANNEL_REMOVE:
+//             RemoveChannelInLoop(fd);
+//             break;
+//         case ADMIN_CHANNEL_UPDATE:
+//             UpdateChannelInLoop(fd);
+//             break;
+//         default:
+//             break;
+//     }
+//     return 0;
+// }
 
-// in the i/o thread
-int EventLoop::HandlePendingChannels() {
-    std::list<ChannelElement> cur_error_channel_list;
-    //get the lock
+// // in the i/o thread
+// int EventLoop::HandlePendingChannels() {
+//     std::list<ChannelElement> cur_error_channel_list;
+//     //get the lock
+//     std::unique_lock<std::mutex> lock(mutex_);
+//     //  先处理pending_channels
+//     is_handle_pending_ = 1;
+//     for (auto& channel_element: pending_channels_) {
+//         if (HandleChannelElement(channel_element) != 0) {
+//             cur_error_channel_list.push_back(channel_element);
+//         }
+//     }
+//     pending_channels_.clear();
+//     // 再处理上次遗留的error_channels
+//     for (auto& channel_element: error_channels_) {
+//         if (HandleChannelElement(channel_element) != 0) {
+//             cur_error_channel_list.push_back(channel_element);
+//         }
+//     }
+//     std::swap(cur_error_channel_list, error_channels_);
+//     is_handle_pending_ = 0;
+//     // ~lock, release the lock
+
+//     return 0;
+// }
+
+
+void EventLoop::QueueInLoop(Task task) {
     std::unique_lock<std::mutex> lock(mutex_);
-    //  先处理pending_channels
-    is_handle_pending_ = 1;
-    for (auto& channel_element: pending_channels_) {
-        if (HandleChannelElement(channel_element) != 0) {
-            cur_error_channel_list.push_back(channel_element);
-        }
-    }
-    pending_channels_.clear();
-    // 再处理上次遗留的error_channels
-    for (auto& channel_element: error_channels_) {
-        if (HandleChannelElement(channel_element) != 0) {
-            cur_error_channel_list.push_back(channel_element);
-        }
-    }
-    std::swap(cur_error_channel_list, error_channels_);
-    is_handle_pending_ = 0;
-    // ~lock, release the lock
-
-    return 0;
+    task_list_.push_back(task);
+    Wakeup();
 }
 
-int EventLoop::AdminChannel(std::shared_ptr<Channel> channel, int type) {
-    ChannelElement channel_element(type, channel);
+void EventLoop::RunTaskInLoopThread(Task task) {
     if (InOwnerThread()) {
-        HandleChannelElement(channel_element); // EventLoop的owner线程可以直接处理
+        task();
     } else {
-        // 其他的线程，需要把事件挂载到pending队列中，然后唤醒owener线程去处理
-        //get the lock
-        std::unique_lock<std::mutex> lock(mutex_);
-        assert(is_handle_pending_ == 0);
-        //add channel into the pending list
-        pending_channels_.push_back(channel_element);
-        Wakeup();
+        QueueInLoop(task);
     }
-    return 0;
 }
+
+void EventLoop::DoPendingTasksInLoop() {
+    assert(InOwnerThread());
+    std::list<Task> task_list;
+    {
+        std::unique_lock<std::mutex> lock(mutex_);
+        std::swap(task_list_, task_list);
+    }
+    for (auto task: task_list) {
+        task();
+    }
+}
+
+// int EventLoop::AdminChannel(std::shared_ptr<Channel> channel, int type) {
+//     ChannelElement channel_element(type, channel);
+//     if (InOwnerThread()) {
+//         HandleChannelElement(channel_element); // EventLoop的owner线程可以直接处理
+//     } else {
+//         // 其他的线程，需要把事件挂载到pending队列中，然后唤醒owener线程去处理
+//         //get the lock
+//         std::unique_lock<std::mutex> lock(mutex_);
+//         assert(is_handle_pending_ == 0);
+//         //add channel into the pending list
+//         pending_channels_.push_back(channel_element);
+//         Wakeup();
+//     }
+//     return 0;
+// }
 
 std::shared_ptr<Channel> EventLoop::GetChannel(int fd) {
+    std::unique_lock<std::mutex> lock(mutex_);
     auto iter = channel_map_.find(fd);
     if (iter == channel_map_.end()) {
         return nullptr;
@@ -120,31 +147,38 @@ std::shared_ptr<Channel> EventLoop::GetChannel(int fd) {
 }
 
 // in the i/o thread
-int EventLoop::HandlePendingAdd(std::shared_ptr<Channel> channel) {
+void EventLoop::AddChannelInLoop(std::shared_ptr<Channel> channel) {
+    assert(InOwnerThread());
+    if (channel == nullptr) {
+        return;
+    }
     yolanda_msgx("add channel %s, %s", channel->GetDescription().c_str(), name_.c_str());
     int fd = channel->GetFD();
 
     if (fd < 0) {
-        return 0;
+        return;
     }
 
     std::shared_ptr<Channel> found_channel = GetChannel(fd);
     if (found_channel != nullptr) {
-        return 0;
+        return;
     }
     assert(channel->GetEventLoop() == nullptr);
     channel->SetEventLoop(this);
     //add channel
-    event_dispatcher_->Add(*channel);
-    channel_map_.emplace(fd, channel);
-    return 1;
+    if (!event_dispatcher_->Add(*channel)) {
+        QueueInLoop(std::bind(&EventLoop::AddChannelInLoop, this, channel));
+    } else {
+        channel_map_.emplace(fd, channel);
+    }
 }
 
 // in the i/o thread
-int EventLoop::HandlePendingRemove(int fd) {
+void EventLoop::RemoveChannelInLoop(int fd) {
+    assert(InOwnerThread());
     std::shared_ptr<Channel> found_channel = GetChannel(fd);
     if (found_channel == nullptr) {
-        return -1;
+        return;
     }
     assert(found_channel->GetEventLoop() == this);
 
@@ -155,28 +189,30 @@ int EventLoop::HandlePendingRemove(int fd) {
     //    return -1;
     //}
     // remove from dispatcher (multi-thread) here
-    if (event_dispatcher_->Del(*found_channel) < 0) {
-        return -1;
+    if (!event_dispatcher_->Del(*found_channel)) {
+        QueueInLoop(std::bind(&EventLoop::RemoveChannelInLoop, this, fd));
+    } else {
+        // remove from channel_map_
+        channel_map_.erase(fd);
     }
-    // remove from channel_map_
-    channel_map_.erase(fd);
-    return 1;
 }
 
 // in the i/o thread
-int EventLoop::HandlePendingUpdate(int fd) {
+void EventLoop::UpdateChannelInLoop(int fd) {
+    assert(InOwnerThread());
     yolanda_msgx("update channel fd == %d, %s", fd, name_.c_str());
 
     std::shared_ptr<Channel> found_channel = GetChannel(fd);
     if (found_channel == nullptr) {
-        return -1;
+        return;
     }
     assert(found_channel->GetEventLoop() == this);
     yolanda_msgx("update channel %s, %s", found_channel->GetDescription().c_str(), name_.c_str());
 
     //update channel
-    event_dispatcher_->Update(*found_channel);
-    return 1;
+    if (!event_dispatcher_->Update(*found_channel)) {
+        QueueInLoop(std::bind(&EventLoop::UpdateChannelInLoop, this, fd));
+    }
 }
 
 int EventLoop::ChannelEventActivate(int fd, int channel_revents) {
@@ -228,8 +264,10 @@ int EventLoop::Run() {
         //block here to wait I/O event, and get active channels
         event_dispatcher_->Dispatch(&timeval);
 
-        //handle the pending channel
-        HandlePendingChannels();
+        // // handle the pending channel
+        // HandlePendingChannels();
+
+        DoPendingTasksInLoop();
     }
 
     yolanda_msgx("event loop end, %s", name_.c_str());

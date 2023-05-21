@@ -52,10 +52,11 @@ public:
     friend class Acceptor;
     // friend class TcpApplication;
 
-    TcpConnection(int connected_fd, const std::string& name = "connection") {
+    TcpConnection(int connected_fd, const std::string& name = "connection", WorkThread* worker = nullptr) {
         Set(connected_fd, CHANNEL_EVENT_READ, name);
         input_buffer_ = std::make_shared<Buffer>();
         output_buffer_ = std::make_shared<Buffer>();
+        worker_ = worker;
     }
 
     virtual ~TcpConnection() { Close(); }
@@ -80,10 +81,9 @@ public:
     int HandleConnectionClosed();
 
     // 这里的接口需要考虑到在其他线程（非EventLoop线程）调用的情况，否则 decoding-computing-encoding 只能在EventLoop线程中和IO串行执行
-    int SendData(const char *data, int size);
-    int SendData(const std::string& data);
-    int SendBuffer(const Buffer& buffer);
-    int SendBufferInLoop(std::shared_ptr<Buffer> buffer);
+    // int SendData(const char *data, int size);
+    void SendString(std::shared_ptr<std::string> data);
+    void SendBuffer(std::shared_ptr<Buffer> buffer);
     void Shutdown();
     Buffer* GetInputBuffer() { return input_buffer_.get(); }
 
@@ -95,14 +95,19 @@ public:
     // 处理input_buffer_的回调函数（数据读取到了input_buffer_之后执行）
     virtual int MessageCallBack(std::shared_ptr<Buffer> message_buffer) { return 0; }
 
-    // worker 线程调用
-    virtual void ApplicationLayerProcess() {};
-
 protected:
 
     void FocusWriteEvent();
 
     void CancelFocusWriteEvent();
+
+    void SendDataInLoop(const char *data, int size);
+
+    void SendBufferInLoop(std::shared_ptr<Buffer> buffer);
+
+    void SendStringInLoop(std::shared_ptr<std::string> str);
+
+    void ShutdownInLoop();
 
     std::string name_;
     std::shared_ptr<Buffer> input_buffer_;   //接收缓冲区
@@ -110,6 +115,7 @@ protected:
 
     // std::shared_ptr<TcpApplication> application_;  // Tcp上层应用，比如Http
     bool closed_callback_executed_ = false;
+    WorkThread* worker_ = nullptr;
 };
 
 }
@@ -159,7 +165,7 @@ public:
         std::shared_ptr<Buffer> data;
     };
 
-void DoTask(const Task& task) {
+void RunTaskInLoopThread(const Task& task) {
     auto iter = map_.find(task.connection->GetFD());
     if (iter == map_.end()) {
         iter = map_.emplace(task.connection->GetFD(), NewTcpApplication);
@@ -178,10 +184,31 @@ void Work() {
     while (work_) {
         Task task = task_list_.front();
         task_list_.pop_front();
-        DoTask(task);
+        RunTaskInLoopThread(task);
     }
 }
 std::map<int, TcpApplication> map_;
 std::list<Task> task_list_;
 }
+*/
+
+/*
+EventLoop被唤醒后，处理connection 的事件类型：
+
+套接字可读（从套接字读取数据，写入到input_buffer_）
+    读取到0字节，设置套接字状态为closed，不会再向套接字写入数据（直接将套接字移出关注列表）
+
+套接字可写（读取output_buffer_的数据，写入套接字）
+    如果状态为closed，不需要再发送数据，直接丢弃out_buffer_
+    如果状态为closing（不再向buffer追加数据），但是要把已经在buffer_中的数据继续处理完毕，处理完之后，真正执行ShutDown
+    Normal，正常发送数据，处理完之后，需要更新channel，关闭关注写
+
+应用层发送数据（写入数据到output_buffer_）
+    如果状态不为normal，直接丢弃数据，并打印日志
+    
+
+应用层要求关闭写
+    如果状态为normal，则设置closing，否则维持不变
+    ShutDown成功
+    
 */
